@@ -1,9 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import ExecutiveOverview from '../components/Dashboard/ExecutiveOverview';
 import ProjectsOverview from '../components/Dashboard/ProjectsOverview';
 import SprintPerformance from '../components/Dashboard/SprintPerformance';
 import TasksOverview from '../components/Dashboard/TasksOverview';
-import { populateSampleData } from '../db/db';
 
 const Dashboard = () => {
   return (
