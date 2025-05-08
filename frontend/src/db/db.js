@@ -109,7 +109,7 @@ export async function populateSampleData() {
       })
     ]);
     
-    // Add more sample data here
+    // Add more sample data here for sprints, team members, tasks, etc.
 
   } catch (error) {
     console.error('Error populating sample data:', error);
