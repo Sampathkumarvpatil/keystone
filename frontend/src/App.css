@@ -1,38 +1,94 @@
-.App {
-    text-align: center;
+/* Base Styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+    'Open Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  @apply bg-gray-100;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Custom Components */
+.card {
+  @apply bg-white rounded-lg shadow-md p-6;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+.btn {
+  @apply px-4 py-2 rounded font-medium transition-colors duration-200;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.btn-primary {
+  @apply bg-purple-600 text-white hover:bg-purple-700;
 }
 
-.App-link {
-    color: #61dafb;
+.btn-secondary {
+  @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.form-input {
+  @apply w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500;
+}
+
+.badge {
+  @apply px-2 py-1 rounded-full text-xs font-medium;
+}
+
+/* Status & Priority Colors */
+.status-not-started {
+  @apply bg-purple-100 text-purple-800;
+}
+
+.status-in-progress {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.status-on-hold {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-completed {
+  @apply bg-green-100 text-green-800;
+}
+
+.priority-low {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.priority-medium {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.priority-high {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.priority-critical {
+  @apply bg-red-100 text-red-800;
+}
+
+/* Chart containers */
+.chart-container {
+  @apply h-64;
+}
+
+/* Dashboard grid layout */
+.dashboard-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
