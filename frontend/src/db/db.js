@@ -52,36 +52,62 @@ export const BUG_SEVERITY = {
 
 // Sample data generation to populate the app initially
 export async function populateSampleData() {
-  // Check if data already exists
-  const projectCount = await db.projects.count();
-  if (projectCount > 0) return;
+  try {
+    // Check if data already exists
+    const projectCount = await db.projects.count();
+    if (projectCount > 0) return;
 
-  // Create sample projects
-  const projectIds = await Promise.all([
-    db.projects.add({
-      name: 'Cloud Migration',
-      status: PROJECT_STATUS.IN_PROGRESS,
-      priority: PROJECT_PRIORITY.HIGH,
-      startDate: new Date('2025-01-15'),
-      endDate: new Date('2025-06-30'),
-      createdAt: new Date()
-    }),
-    db.projects.add({
-      name: 'Mobile App Refactor',
-      status: PROJECT_STATUS.IN_PROGRESS,
-      priority: PROJECT_PRIORITY.CRITICAL,
-      startDate: new Date('2025-02-01'),
-      endDate: new Date('2025-04-30'),
-      createdAt: new Date()
-    }),
-    db.projects.add({
-      name: 'API Platform',
-      status: PROJECT_STATUS.NOT_STARTED,
-      priority: PROJECT_PRIORITY.MEDIUM,
-      startDate: new Date('2025-04-01'),
-      endDate: new Date('2025-08-31'),
-      createdAt: new Date()
-    })
+    // Create sample projects
+    const projectIds = await Promise.all([
+      db.projects.add({
+        name: 'Cloud Migration',
+        status: PROJECT_STATUS.IN_PROGRESS,
+        priority: PROJECT_PRIORITY.HIGH,
+        startDate: new Date('2025-01-15'),
+        endDate: new Date('2025-06-30'),
+        createdAt: new Date()
+      }),
+      db.projects.add({
+        name: 'Mobile App Refactor',
+        status: PROJECT_STATUS.IN_PROGRESS,
+        priority: PROJECT_PRIORITY.CRITICAL,
+        startDate: new Date('2025-02-01'),
+        endDate: new Date('2025-04-30'),
+        createdAt: new Date()
+      }),
+      db.projects.add({
+        name: 'API Platform',
+        status: PROJECT_STATUS.NOT_STARTED,
+        priority: PROJECT_PRIORITY.MEDIUM,
+        startDate: new Date('2025-04-01'),
+        endDate: new Date('2025-08-31'),
+        createdAt: new Date()
+      }),
+      db.projects.add({
+        name: 'DevOps Automation',
+        status: PROJECT_STATUS.IN_PROGRESS,
+        priority: PROJECT_PRIORITY.HIGH,
+        startDate: new Date('2025-01-10'),
+        endDate: new Date('2025-05-15'),
+        createdAt: new Date()
+      }),
+      db.projects.add({
+        name: 'Security Compliance',
+        status: PROJECT_STATUS.ON_HOLD,
+        priority: PROJECT_PRIORITY.CRITICAL,
+        startDate: new Date('2025-02-15'),
+        endDate: new Date('2025-04-15'),
+        createdAt: new Date()
+      }),
+      db.projects.add({
+        name: 'Data Lake Implementation',
+        status: PROJECT_STATUS.COMPLETED,
+        priority: PROJECT_PRIORITY.MEDIUM,
+        startDate: new Date('2024-11-01'),
+        endDate: new Date('2025-02-28'),
+        createdAt: new Date()
+      })
+    ]);
   ]);
 
   // Create sample sprints
