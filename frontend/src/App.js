@@ -14,10 +14,25 @@ const TimeTracking = () => <div className="p-4">Time Tracking Page (Coming Soon)
 const Settings = () => <div className="p-4">Settings Page (Coming Soon)</div>;
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     // Initialize the database with sample data
-    populateSampleData();
+    populateSampleData().then(() => {
+      setIsLoading(false);
+    });
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-solid border-purple-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+          <p className="mt-4 text-lg text-gray-700">Loading your engineering dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>
