@@ -348,6 +348,10 @@ export async function populateSampleData() {
       createdAt: new Date()
     })
   ]);
+  } catch (error) {
+    console.error('Error populating sample data:', error);
+    throw error;
+  }
 }
 
 export default db;
