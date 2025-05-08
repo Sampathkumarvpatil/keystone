@@ -17,9 +17,19 @@ const Projects = () => {
   });
   const [isEditing, setIsEditing] = useState(false);
 
-  const projects = useLiveQuery(() => db.projects.toArray());
-  const sprints = useLiveQuery(() => db.sprints.toArray());
-  const tasks = useLiveQuery(() => db.sprints.toArray());
+  // Load projects
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const projectsData = await db.projects.toArray();
+        setProjects(projectsData);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      }
+    };
+    
+    loadProjects();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
