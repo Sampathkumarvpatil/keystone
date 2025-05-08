@@ -6,11 +6,6 @@ import TasksOverview from '../components/Dashboard/TasksOverview';
 import { populateSampleData } from '../db/db';
 
 const Dashboard = () => {
-  useEffect(() => {
-    // Initialize sample data when the dashboard loads
-    populateSampleData();
-  }, []);
-
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Engineering Director Dashboard</h1>
