@@ -116,10 +116,6 @@ export async function populateSampleData() {
     throw error;
   }
 }
-    db.sprints.add({
-      projectId: projectIds[0],
-      name: 'Sprint 1',
-      startDate: new Date('2025-01-15'),
       endDate: new Date('2025-01-28'),
       status: SPRINT_STATUS.COMPLETED,
       committedPoints: 45,
