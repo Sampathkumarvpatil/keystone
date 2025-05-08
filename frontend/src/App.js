@@ -13,13 +13,31 @@ import { populateSampleData } from './db/db';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState(null);
 
   useEffect(() => {
-    // Initialize the database with sample data
-    populateSampleData().then(() => {
-      setIsLoading(false);
-    });
-  }, []);
+    // Initialize the database with sample data with a timeout
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        setLoadingError('Loading is taking longer than expected. Please refresh the page.');
+      }
+    }, 10000); // 10 seconds timeout
+
+    populateSampleData()
+      .then(() => {
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error('Error loading data:', error);
+        setLoadingError(`Error loading data: ${error.message}. Please refresh the page.`);
+        setIsLoading(false);
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+    return () => clearTimeout(timeoutId);
+  }, [isLoading]);
 
   if (isLoading) {
     return (
@@ -27,6 +45,9 @@ function App() {
         <div className="text-center">
           <div className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-solid border-purple-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
           <p className="mt-4 text-lg text-gray-700">Loading your engineering dashboard...</p>
+          {loadingError && (
+            <p className="mt-2 text-red-600">{loadingError}</p>
+          )}
         </div>
       </div>
     );
@@ -49,5 +70,7 @@ function App() {
     </BrowserRouter>
   );
 }
+
+export default App;
 
 export default App;
