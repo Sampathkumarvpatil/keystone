@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import db, { PROJECT_STATUS, PROJECT_PRIORITY } from '../db/db';
+import React, { useState, useEffect } from 'react';
+import { Chart, registerables } from 'chart.js';
+import db from '../db/db';
+import { PROJECT_STATUS, PROJECT_PRIORITY } from '../db/db';
+
+Chart.register(...registerables);
 
 const Projects = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
