@@ -95,55 +95,43 @@ const Projects = () => {
     }
   };
 
-  // Function to calculate project metrics
-  const calculateProjectMetrics = (projectId) => {
-    if (!sprints || !tasks) return { sprintCount: 0, taskCount: 0, completionRate: 0 };
-    
-    const projectSprints = sprints.filter(s => s.projectId === projectId);
-    const projectTasks = tasks.filter(t => t.projectId === projectId);
-    
-    const sprintCount = projectSprints.length;
-    const taskCount = projectTasks.length;
-    
-    const completedSprints = projectSprints.filter(s => s.status === 'Completed');
-    const completionRate = completedSprints.length > 0
-      ? completedSprints.reduce((acc, sprint) => acc + (sprint.acceptedPoints / sprint.committedPoints), 0) / completedSprints.length
-      : 0;
-    
-    return {
-      sprintCount,
-      taskCount,
-      completionRate: Math.round(completionRate * 100),
-    };
+  // Calculate project progress
+  const calculateProgress = (project) => {
+    // For demo purposes, generate a random progress for completed projects
+    // In a real app, this would be calculated based on tasks, story points, etc.
+    if (project.status === PROJECT_STATUS.COMPLETED) {
+      return 100;
+    } else if (project.status === PROJECT_STATUS.NOT_STARTED) {
+      return 0;
+    } else {
+      // Generate a random progress between 10% and 90% for in-progress projects
+      return Math.floor(Math.random() * 81) + 10;
+    }
   };
-
-  // Get status color
-  const getStatusColor = (status) => {
+  
+  // Get status badge class
+  const getStatusBadgeClass = (status) => {
     switch (status) {
-      case PROJECT_STATUS.NOT_STARTED:
-        return 'bg-purple-100 text-purple-800';
+      case PROJECT_STATUS.COMPLETED:
+        return 'bg-green-100 text-green-800';
       case PROJECT_STATUS.IN_PROGRESS:
         return 'bg-blue-100 text-blue-800';
       case PROJECT_STATUS.ON_HOLD:
         return 'bg-yellow-100 text-yellow-800';
-      case PROJECT_STATUS.COMPLETED:
-        return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
-
-  // Get priority color
-  const getPriorityColor = (priority) => {
+  
+  // Get priority badge class
+  const getPriorityBadgeClass = (priority) => {
     switch (priority) {
-      case PROJECT_PRIORITY.LOW:
-        return 'bg-gray-100 text-gray-800';
-      case PROJECT_PRIORITY.MEDIUM:
-        return 'bg-blue-100 text-blue-800';
-      case PROJECT_PRIORITY.HIGH:
-        return 'bg-yellow-100 text-yellow-800';
       case PROJECT_PRIORITY.CRITICAL:
         return 'bg-red-100 text-red-800';
+      case PROJECT_PRIORITY.HIGH:
+        return 'bg-orange-100 text-orange-800';
+      case PROJECT_PRIORITY.MEDIUM:
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
