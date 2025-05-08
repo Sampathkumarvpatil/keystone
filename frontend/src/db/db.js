@@ -108,9 +108,14 @@ export async function populateSampleData() {
         createdAt: new Date()
       })
     ]);
+    
+    // Add more sample data here
 
-    // Create sample sprints
-    const sprintIds = await Promise.all([
+  } catch (error) {
+    console.error('Error populating sample data:', error);
+    throw error;
+  }
+}
     db.sprints.add({
       projectId: projectIds[0],
       name: 'Sprint 1',
