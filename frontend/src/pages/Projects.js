@@ -138,161 +138,89 @@ const Projects = () => {
   };
 
   return (
-    <div>
+    <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Projects</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Projects</h1>
         <button
-          onClick={() => setIsFormOpen(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md"
+          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          onClick={() => {
+            setNewProject({
+              name: '',
+              status: 'Not Started',
+              priority: 'Medium',
+              startDate: '',
+              endDate: ''
+            });
+            setIsEditing(false);
+            setShowProjectForm(true);
+          }}
         >
-          Create New Project
+          Create Project
         </button>
       </div>
-
-      {/* New Project Form */}
-      {isFormOpen && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Create New Project</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-700 mb-1">Project Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-gray-700 mb-1">Status</label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {Object.values(PROJECT_STATUS).map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-gray-700 mb-1">Priority</label>
-                <select
-                  name="priority"
-                  value={formData.priority}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  {Object.values(PROJECT_PRIORITY).map(priority => (
-                    <option key={priority} value={priority}>{priority}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-gray-700 mb-1">Start Date</label>
-                <input
-                  type="date"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-gray-700 mb-1">End Date</label>
-                <input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsFormOpen(false)}
-                className="mr-2 px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-              >
-                Create Project
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects && projects.map(project => {
-          const metrics = calculateProjectMetrics(project.id);
+      
+      {/* Project grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        {projects.map(project => {
+          const progress = calculateProgress(project);
           
           return (
-            <div key={project.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div key={project.id} className="bg-white rounded-lg shadow overflow-hidden">
               <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-2">{project.name}</h2>
-                
-                <div className="flex items-center mb-4">
-                  <span className={`px-2 py-1 rounded-full text-xs mr-2 ${getStatusColor(project.status)}`}>
-                    {project.status}
-                  </span>
-                  <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(project.priority)}`}>
-                    {project.priority}
-                  </span>
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-lg font-semibold text-gray-800">{project.name}</h2>
+                  <div className="flex space-x-2">
+                    <span 
+                      className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(project.status)}`}
+                    >
+                      {project.status}
+                    </span>
+                    <span 
+                      className={`px-2 py-1 rounded-full text-xs ${getPriorityBadgeClass(project.priority)}`}
+                    >
+                      {project.priority}
+                    </span>
+                  </div>
                 </div>
                 
-                <div className="text-sm text-gray-600 mb-4">
+                <div className="mb-4">
                   <div className="flex justify-between mb-1">
-                    <span>Start Date:</span>
-                    <span className="font-medium">
-                      {new Date(project.startDate).toLocaleDateString()}
-                    </span>
+                    <span className="text-sm font-medium text-gray-700">Progress</span>
+                    <span className="text-sm font-medium text-gray-700">{progress}%</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>End Date:</span>
-                    <span className="font-medium">
-                      {new Date(project.endDate).toLocaleDateString()}
-                    </span>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div 
+                      className="bg-blue-600 h-2.5 rounded-full" 
+                      style={{ width: `${progress}%` }}
+                    ></div>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2 text-center my-4">
-                  <div className="bg-blue-50 p-2 rounded">
-                    <div className="text-xl font-bold text-blue-700">{metrics.sprintCount}</div>
-                    <div className="text-xs text-blue-600">Sprints</div>
-                  </div>
-                  <div className="bg-purple-50 p-2 rounded">
-                    <div className="text-xl font-bold text-purple-700">{metrics.taskCount}</div>
-                    <div className="text-xs text-purple-600">Tasks</div>
-                  </div>
-                  <div className="bg-green-50 p-2 rounded">
-                    <div className="text-xl font-bold text-green-700">{metrics.completionRate}%</div>
-                    <div className="text-xs text-green-600">Completion</div>
+                <div className="mb-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Start Date</p>
+                      <p className="text-sm font-medium">
+                        {new Date(project.startDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">End Date</p>
+                      <p className="text-sm font-medium">
+                        {new Date(project.endDate).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex justify-between mt-4">
-                  <button className="px-3 py-1 bg-gray-100 rounded text-gray-800 hover:bg-gray-200">
+                <div className="flex justify-between">
+                  <button 
+                    className="text-blue-600 hover:text-blue-800"
+                    onClick={() => handleEditProject(project)}
+                  >
                     Edit
                   </button>
-                  <button className="px-3 py-1 bg-blue-600 rounded text-white hover:bg-blue-700">
+                  <button className="text-blue-600 hover:text-blue-800">
                     View Details
                   </button>
                 </div>
@@ -301,6 +229,106 @@ const Projects = () => {
           );
         })}
       </div>
+      
+      {/* Project Form */}
+      {showProjectForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">
+              {isEditing ? 'Edit Project' : 'Create New Project'}
+            </h2>
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <label className="block text-gray-700 mb-2">Project Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={newProject.name}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded px-3 py-2"
+                  required
+                />
+              </div>
+              
+              <div className="mb-4 grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 mb-2">Status</label>
+                  <select
+                    name="status"
+                    value={newProject.status}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    required
+                  >
+                    <option value={PROJECT_STATUS.NOT_STARTED}>Not Started</option>
+                    <option value={PROJECT_STATUS.IN_PROGRESS}>In Progress</option>
+                    <option value={PROJECT_STATUS.ON_HOLD}>On Hold</option>
+                    <option value={PROJECT_STATUS.COMPLETED}>Completed</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-gray-700 mb-2">Priority</label>
+                  <select
+                    name="priority"
+                    value={newProject.priority}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    required
+                  >
+                    <option value={PROJECT_PRIORITY.LOW}>Low</option>
+                    <option value={PROJECT_PRIORITY.MEDIUM}>Medium</option>
+                    <option value={PROJECT_PRIORITY.HIGH}>High</option>
+                    <option value={PROJECT_PRIORITY.CRITICAL}>Critical</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="mb-4 grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={newProject.startDate}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-gray-700 mb-2">End Date</label>
+                  <input
+                    type="date"
+                    name="endDate"
+                    value={newProject.endDate}
+                    onChange={handleInputChange}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  className="px-4 py-2 border border-gray-300 rounded-md"
+                  onClick={() => setShowProjectForm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md"
+                >
+                  {isEditing ? 'Update Project' : 'Create Project'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
