@@ -4,14 +4,12 @@ import "./App.css";
 import MainLayout from './components/Layout/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
+import Sprints from './pages/Sprints';
+import Tasks from './pages/Tasks';
+import Team from './pages/Team';
+import TimeTracking from './pages/TimeTracking';
+import Settings from './pages/Settings';
 import { populateSampleData } from './db/db';
-
-// Placeholder components for routes not yet implemented
-const Sprints = () => <div className="p-4">Sprints Page (Coming Soon)</div>;
-const Tasks = () => <div className="p-4">Tasks & Bugs Page (Coming Soon)</div>;
-const Team = () => <div className="p-4">Team Management Page (Coming Soon)</div>;
-const TimeTracking = () => <div className="p-4">Time Tracking Page (Coming Soon)</div>;
-const Settings = () => <div className="p-4">Settings Page (Coming Soon)</div>;
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
