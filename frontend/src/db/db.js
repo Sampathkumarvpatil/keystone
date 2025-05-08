@@ -108,10 +108,9 @@ export async function populateSampleData() {
         createdAt: new Date()
       })
     ]);
-  ]);
 
-  // Create sample sprints
-  const sprintIds = await Promise.all([
+    // Create sample sprints
+    const sprintIds = await Promise.all([
     db.sprints.add({
       projectId: projectIds[0],
       name: 'Sprint 1',
