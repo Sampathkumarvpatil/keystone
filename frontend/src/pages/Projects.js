@@ -31,31 +31,68 @@ const Projects = () => {
     loadProjects();
   }, []);
 
+  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    setNewProject(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
+  
+  // Handle project edit
+  const handleEditProject = (project) => {
+    setNewProject({
+      ...project,
+      startDate: new Date(project.startDate).toISOString().split('T')[0],
+      endDate: new Date(project.endDate).toISOString().split('T')[0]
+    });
+    setIsEditing(true);
+    setShowProjectForm(true);
+  };
+  
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const newProject = {
-      ...formData,
-      createdAt: new Date(),
-    };
-    
-    await db.projects.add(newProject);
-    setFormData({
-      name: '',
-      status: PROJECT_STATUS.NOT_STARTED,
-      priority: PROJECT_PRIORITY.MEDIUM,
-      startDate: '',
-      endDate: '',
-    });
-    setIsFormOpen(false);
+    try {
+      const projectData = {
+        ...newProject,
+        createdAt: new Date()
+      };
+      
+      let id;
+      if (isEditing) {
+        // Update existing project
+        id = newProject.id;
+        await db.projects.update(id, projectData);
+        
+        // Update state
+        setProjects(prev => 
+          prev.map(project => project.id === id ? { ...projectData, id } : project)
+        );
+      } else {
+        // Add new project
+        id = await db.projects.add(projectData);
+        
+        // Update state
+        setProjects(prev => [...prev, { ...projectData, id }]);
+      }
+      
+      // Reset form and close it
+      setNewProject({
+        name: '',
+        status: 'Not Started',
+        priority: 'Medium',
+        startDate: '',
+        endDate: ''
+      });
+      setIsEditing(false);
+      setShowProjectForm(false);
+    } catch (error) {
+      console.error('Error saving project:', error);
+      alert('Failed to save project. Please try again.');
+    }
   };
 
   // Function to calculate project metrics
