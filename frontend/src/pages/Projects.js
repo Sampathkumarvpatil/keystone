@@ -6,14 +6,16 @@ import { PROJECT_STATUS, PROJECT_PRIORITY } from '../db/db';
 Chart.register(...registerables);
 
 const Projects = () => {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [projects, setProjects] = useState([]);
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [newProject, setNewProject] = useState({
     name: '',
-    status: PROJECT_STATUS.NOT_STARTED,
-    priority: PROJECT_PRIORITY.MEDIUM,
+    status: 'Not Started',
+    priority: 'Medium',
     startDate: '',
-    endDate: '',
+    endDate: ''
   });
+  const [isEditing, setIsEditing] = useState(false);
 
   const projects = useLiveQuery(() => db.projects.toArray());
   const sprints = useLiveQuery(() => db.sprints.toArray());
