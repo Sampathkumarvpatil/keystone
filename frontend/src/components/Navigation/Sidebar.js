@@ -1,6 +1,6 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
+import React, { useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
   HomeIcon, 
   ChartBarIcon, 
   ClipboardDocumentListIcon,
@@ -12,6 +12,27 @@ import {
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Save current location to localStorage and handle page refresh
+  useEffect(() => {
+    // Only store non-root paths
+    if (location.pathname !== '/') {
+      localStorage.setItem('lastRoute', location.pathname);
+    }
+    
+    // Check if this is a page load/refresh
+    const isFirstLoad = sessionStorage.getItem('isLoaded') === null;
+    if (isFirstLoad) {
+      sessionStorage.setItem('isLoaded', 'true');
+      
+      // Check if there's a saved route
+      const savedRoute = localStorage.getItem('lastRoute');
+      if (savedRoute && location.pathname === '/') {
+        navigate(savedRoute);
+      }
+    }
+  }, [location, navigate]);
   
   const navItems = [
     { name: 'Dashboard', icon: HomeIcon, path: '/' },
