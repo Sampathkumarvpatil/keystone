@@ -78,15 +78,17 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="projects" element={<Projects />} />
-          <Route path="sprints" element={<Sprints />} />
-          <Route path="tasks" element={<Tasks />} />
-          <Route path="team" element={<Team />} />
-          <Route path="time" element={<TimeTracking />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+        <Route element={<RouterHandler />}>
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="projects" element={<Projects />} />
+            <Route path="sprints" element={<Sprints />} />
+            <Route path="tasks" element={<Tasks />} />
+            <Route path="team" element={<Team />} />
+            <Route path="time" element={<TimeTracking />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>
