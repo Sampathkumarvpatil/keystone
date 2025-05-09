@@ -234,24 +234,52 @@ const Projects = () => {
       pdf.text(`Status Filter: ${filterStatus === 'all' ? 'All Statuses' : filterStatus}`, 40, 80);
       pdf.text(`Priority Filter: ${filterPriority === 'all' ? 'All Priorities' : filterPriority}`, 40, 100);
       
-      // Calculate height of content
-      const projectCards = projectsContainerRef.current.querySelectorAll('.project-card');
-      const cardHeight = 250; // Estimated height of each card
-      const cardsPerRow = 3;
-      const numRows = Math.ceil(projectCards.length / cardsPerRow);
-      const totalContentHeight = numRows * cardHeight;
+      // Get all project cards
+      const projectCards = document.querySelectorAll('.project-card');
       
-      // Capture and add content
-      const canvas = await html2canvas(projectsContainerRef.current, {
-        height: totalContentHeight + 100, // Add extra height to ensure all content is captured
-        scrollY: -window.scrollY
-      });
-      const imgData = canvas.toDataURL('image/png');
+      // Create an array to store each card image
+      const cardImages = [];
       
-      const imgWidth = 750;
-      const imgHeight = canvas.height * imgWidth / canvas.width;
+      // Capture each project card individually
+      for (let i = 0; i < projectCards.length; i++) {
+        const card = projectCards[i];
+        const canvas = await html2canvas(card, { scale: 2 });
+        cardImages.push({
+          dataUrl: canvas.toDataURL('image/png'),
+          width: canvas.width,
+          height: canvas.height
+        });
+      }
       
-      pdf.addImage(imgData, 'PNG', 40, 120, imgWidth, imgHeight);
+      // Add cards to PDF
+      let yPosition = 120;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 40;
+      const maxWidth = pageWidth - (margin * 2);
+      
+      for (let i = 0; i < cardImages.length; i++) {
+        const img = cardImages[i];
+        const imgWidth = maxWidth / 2; // Two cards per row
+        const imgHeight = imgWidth * (img.height / img.width);
+        
+        // Check if we need to add a new page
+        if (yPosition + imgHeight > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        
+        // Calculate x position (left or right side)
+        const xPosition = margin + (i % 2 === 0 ? 0 : imgWidth + 20);
+        
+        // Add the image
+        pdf.addImage(img.dataUrl, 'PNG', xPosition, yPosition, imgWidth, imgHeight);
+        
+        // Update yPosition if needed (after every two cards)
+        if (i % 2 === 1 || i === cardImages.length - 1) {
+          yPosition += imgHeight + 20;
+        }
+      }
       
       // Save the PDF
       pdf.save(`Projects_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
