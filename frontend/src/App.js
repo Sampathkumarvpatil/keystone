@@ -39,6 +39,28 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
 
+  // Router component to preserve the navigation state across refreshes
+  const RouterHandler = () => {
+    const location = useLocation();
+    
+    // Save current location to session storage when it changes
+    useEffect(() => {
+      sessionStorage.setItem('lastRoute', location.pathname);
+    }, [location]);
+    
+    // On component mount, check if there's a previously saved route
+    const navigate = useNavigate();
+    useEffect(() => {
+      const savedRoute = sessionStorage.getItem('lastRoute');
+      // If we're at root and have a saved route, navigate to it
+      if (location.pathname === '/' && savedRoute && savedRoute !== '/') {
+        navigate(savedRoute);
+      }
+    }, [navigate, location.pathname]);
+    
+    return <Outlet />;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-100">
