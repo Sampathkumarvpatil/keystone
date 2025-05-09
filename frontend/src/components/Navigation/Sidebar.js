@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   HomeIcon, 
   ChartBarIcon, 
@@ -12,27 +12,6 @@ import {
 
 const Sidebar = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-  
-  // Save current location to localStorage and handle page refresh
-  useEffect(() => {
-    // Only store non-root paths
-    if (location.pathname !== '/') {
-      localStorage.setItem('lastRoute', location.pathname);
-    }
-    
-    // Check if this is a page load/refresh
-    const isFirstLoad = sessionStorage.getItem('isLoaded') === null;
-    if (isFirstLoad) {
-      sessionStorage.setItem('isLoaded', 'true');
-      
-      // Check if there's a saved route
-      const savedRoute = localStorage.getItem('lastRoute');
-      if (savedRoute && location.pathname === '/') {
-        navigate(savedRoute);
-      }
-    }
-  }, [location, navigate]);
   
   const navItems = [
     { name: 'Dashboard', icon: HomeIcon, path: '/' },
@@ -43,12 +22,6 @@ const Sidebar = () => {
     { name: 'Time Tracking', icon: ClockIcon, path: '/time' },
     { name: 'Settings', icon: Cog6ToothIcon, path: '/settings' },
   ];
-
-  // Custom nav link handler to ensure navigation works
-  const handleNavClick = (path, e) => {
-    e.preventDefault();
-    navigate(path);
-  };
 
   return (
     <div className="h-screen w-64 bg-gray-800 text-white fixed left-0 top-0 overflow-y-auto">
@@ -61,16 +34,18 @@ const Sidebar = () => {
         <ul>
           {navItems.map((item) => (
             <li key={item.path} className="mb-2">
-              <a
-                href={item.path}
-                onClick={(e) => handleNavClick(item.path, e)}
+              <Link
+                to={item.path}
                 className={`flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200 ${
-                  location.pathname === item.path ? 'bg-gray-700 text-white border-l-4 border-purple-500' : ''
+                  (location.pathname === item.path || 
+                  (item.path !== '/' && location.pathname.startsWith(item.path)))
+                    ? 'bg-gray-700 text-white border-l-4 border-purple-500' 
+                    : ''
                 }`}
               >
                 <item.icon className="h-5 w-5 mr-3" />
                 <span>{item.name}</span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
