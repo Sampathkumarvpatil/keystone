@@ -28,6 +28,11 @@ const ExecutiveOverview = ({ filterStatus, filterPriority, filterDateRange, filt
       filtered = filtered.filter(p => p.priority === filterPriority);
     }
     
+    // Filter by specific project
+    if (filterProjectId && filterProjectId !== 'all') {
+      filtered = filtered.filter(p => p.id === parseInt(filterProjectId));
+    }
+    
     // Filter by date range
     if (filterDateRange && filterDateRange !== 'all') {
       const now = new Date();
@@ -47,7 +52,7 @@ const ExecutiveOverview = ({ filterStatus, filterPriority, filterDateRange, filt
     }
     
     return filtered;
-  }, [allProjects, filterStatus, filterPriority, filterDateRange]);
+  }, [allProjects, filterStatus, filterPriority, filterDateRange, filterProjectId]);
   
   // Get sprints and tasks for filtered projects
   const projectIds = projects?.map(p => p.id) || [];
