@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import "./App.css";
 import MainLayout from './components/Layout/MainLayout';
 import Dashboard from './pages/Dashboard';
@@ -58,12 +58,12 @@ function App() {
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/sprints" element={<Sprints />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/team" element={<Team />} />
-          <Route path="/time" element={<TimeTracking />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="projects" element={<Projects />} />
+          <Route path="sprints" element={<Sprints />} />
+          <Route path="tasks" element={<Tasks />} />
+          <Route path="team" element={<Team />} />
+          <Route path="time" element={<TimeTracking />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
