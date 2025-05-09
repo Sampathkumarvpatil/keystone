@@ -242,19 +242,33 @@ const Sprints = () => {
         <div className="flex items-center space-x-4">
           <select 
             className="form-select rounded border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-            value={selectedProjectId || ''}
+            value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
           >
-            <option value="">All Projects</option>
+            <option value="all">All Projects</option>
             {projects && projects.map(project => (
-              <option key={project.id} value={project.id}>
+              <option key={project.id} value={project.id.toString()}>
                 {project.name}
               </option>
             ))}
           </select>
           
           <button
-            onClick={() => setIsFormOpen(true)}
+            onClick={() => {
+              setFormData({
+                projectId: '',
+                name: '',
+                startDate: '',
+                endDate: '',
+                committedPoints: 0,
+                acceptedPoints: 0,
+                addedPoints: 0,
+                descopedPoints: 0,
+                status: SPRINT_STATUS.PLANNING
+              });
+              setIsEditing(false);
+              setIsFormOpen(true);
+            }}
             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md"
           >
             Create New Sprint
@@ -262,10 +276,12 @@ const Sprints = () => {
         </div>
       </div>
 
-      {/* New Sprint Form */}
+      {/* Sprint Form */}
       {isFormOpen && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Create New Sprint</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            {isEditing ? 'Edit Sprint' : 'Create New Sprint'}
+          </h2>
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -279,7 +295,7 @@ const Sprints = () => {
                 >
                   <option value="">Select Project</option>
                   {projects && projects.map(project => (
-                    <option key={project.id} value={project.id}>
+                    <option key={project.id} value={project.id.toString()}>
                       {project.name}
                     </option>
                   ))}
@@ -296,6 +312,20 @@ const Sprints = () => {
                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   required
                 />
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 mb-1">Status</label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  {Object.values(SPRINT_STATUS).map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
               </div>
               
               <div>
@@ -330,24 +360,44 @@ const Sprints = () => {
                   value={formData.committedPoints}
                   onChange={handleInputChange}
                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
                   min="0"
                 />
               </div>
               
               <div>
-                <label className="block text-gray-700 mb-1">Status</label>
-                <select
-                  name="status"
-                  value={formData.status}
+                <label className="block text-gray-700 mb-1">Accepted Points</label>
+                <input
+                  type="number"
+                  name="acceptedPoints"
+                  value={formData.acceptedPoints}
                   onChange={handleInputChange}
                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
-                >
-                  {Object.values(SPRINT_STATUS).map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
+                  min="0"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 mb-1">Added Points</label>
+                <input
+                  type="number"
+                  name="addedPoints"
+                  value={formData.addedPoints}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  min="0"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 mb-1">Descoped Points</label>
+                <input
+                  type="number"
+                  name="descopedPoints"
+                  value={formData.descopedPoints}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  min="0"
+                />
               </div>
             </div>
             
@@ -363,7 +413,7 @@ const Sprints = () => {
                 type="submit"
                 className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
               >
-                Create Sprint
+                {isEditing ? 'Update Sprint' : 'Create Sprint'}
               </button>
             </div>
           </form>
@@ -373,8 +423,8 @@ const Sprints = () => {
       {/* Sprint Performance Chart */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Sprint Performance</h2>
-        <div className="h-80">
-          <Bar data={sprintChartData} options={chartOptions} />
+        <div style={{ height: "300px" }}>
+          <canvas ref={chartRef}></canvas>
         </div>
       </div>
 
@@ -386,69 +436,73 @@ const Sprints = () => {
           <table className="min-w-full bg-white">
             <thead className="bg-gray-100">
               <tr>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Project
-                </th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Timeline
-                </th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Story Points
-                </th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Completion
-                </th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="py-3 px-4 text-left">NAME</th>
+                <th className="py-3 px-4 text-left">PROJECT</th>
+                <th className="py-3 px-4 text-left">STATUS</th>
+                <th className="py-3 px-4 text-left">TIMELINE</th>
+                <th className="py-3 px-4 text-left">STORY POINTS</th>
+                <th className="py-3 px-4 text-left">COMPLETION</th>
+                <th className="py-3 px-4 text-left">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {sprints && sprints.map(sprint => (
-                <tr key={sprint.id} className="hover:bg-gray-50">
-                  <td className="py-4 px-4 text-sm font-medium text-gray-900">
-                    {sprint.name}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500">
-                    {getProjectName(sprint.projectId)}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500">
-                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(sprint.status)}`}>
-                      {sprint.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500">
-                    {new Date(sprint.startDate).toLocaleDateString()} - {new Date(sprint.endDate).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500">
-                    <div className="flex flex-col">
-                      <span>Committed: {sprint.committedPoints}</span>
-                      <span>Accepted: {sprint.acceptedPoints}</span>
-                      <span>Added: {sprint.addedPoints}</span>
-                      <span>Descoped: {sprint.descopedPoints}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-blue-600 h-2.5 rounded-full" 
-                        style={{ width: `${calculateCompletion(sprint)}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-xs mt-1 block">{calculateCompletion(sprint)}%</span>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-500">
-                    <button className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
-                    <button className="text-gray-600 hover:text-gray-900">View</button>
+            <tbody>
+              {filteredSprints && filteredSprints.length > 0 ? (
+                filteredSprints.map(sprint => {
+                  // Calculate completion percentage
+                  const completion = calculateCompletion(sprint);
+                  
+                  return (
+                    <tr key={sprint.id} className="border-t border-gray-200">
+                      <td className="py-3 px-4">{sprint.name}</td>
+                      <td className="py-3 px-4">{getProjectName(sprint.projectId)}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          sprint.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                          sprint.status === 'Active' ? 'bg-blue-100 text-blue-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {sprint.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {new Date(sprint.startDate).toLocaleDateString()} - {new Date(sprint.endDate).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div>Committed: {sprint.committedPoints}</div>
+                        <div>Accepted: {sprint.acceptedPoints}</div>
+                        <div>Added: {sprint.addedPoints}</div>
+                        <div>Descoped: {sprint.descopedPoints}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className="bg-blue-600 h-2.5 rounded-full" 
+                            style={{ width: `${completion}%` }}
+                          ></div>
+                        </div>
+                        <div className="text-xs mt-1">{completion}%</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button 
+                          onClick={() => handleEditSprint(sprint)}
+                          className="text-blue-600 hover:text-blue-800 mr-2"
+                        >
+                          Edit
+                        </button>
+                        <button className="text-blue-600 hover:text-blue-800">
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="7" className="py-3 px-4 text-center text-gray-500">
+                    No sprints found{selectedProjectId !== 'all' ? ' for the selected project' : ''}. Create your first sprint to get started.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
