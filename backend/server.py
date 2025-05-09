@@ -403,17 +403,17 @@ async def create_time_entry(entry: dict):
     # If the entry is for a completed task/bug, update the actual hours
     task_id = entry.get("taskId")
     if entry.get("isTaskEntry", True):
-        task = db.tasks.find_one({"id": task_id})
+        task = db.tasks.find_one({"id": str(task_id)})
         if task and task.get("status") == "Done":
-            current_hours = task.get("actualHours", 0)
-            new_hours = current_hours + entry.get("hours", 0)
-            db.tasks.update_one({"id": task_id}, {"$set": {"actualHours": new_hours}})
+            current_hours = float(task.get("actualHours", 0))
+            new_hours = current_hours + float(entry.get("hours", 0))
+            db.tasks.update_one({"id": str(task_id)}, {"$set": {"actualHours": new_hours}})
     else:
-        bug = db.bugs.find_one({"id": task_id})
+        bug = db.bugs.find_one({"id": str(task_id)})
         if bug and bug.get("status") == "Done":
-            current_hours = bug.get("actualHours", 0)
-            new_hours = current_hours + entry.get("hours", 0)
-            db.bugs.update_one({"id": task_id}, {"$set": {"actualHours": new_hours}})
+            current_hours = float(bug.get("actualHours", 0))
+            new_hours = current_hours + float(entry.get("hours", 0))
+            db.bugs.update_one({"id": str(task_id)}, {"$set": {"actualHours": new_hours}})
     
     result = db.time_entries.insert_one(entry)
     created_entry = db.time_entries.find_one({"_id": result.inserted_id})
