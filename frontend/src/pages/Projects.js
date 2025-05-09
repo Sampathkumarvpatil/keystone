@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Chart, registerables } from 'chart.js';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import db from '../db/db';
 import { PROJECT_STATUS, PROJECT_PRIORITY } from '../db/db';
 
@@ -16,6 +18,13 @@ const Projects = () => {
     endDate: ''
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
+  
+  // References for PDF export
+  const projectsContainerRef = React.useRef(null);
 
   // Load projects
   useEffect(() => {
@@ -30,6 +39,12 @@ const Projects = () => {
     
     loadProjects();
   }, []);
+
+  // Filtered projects
+  const filteredProjects = projects.filter(project => {
+    return (filterStatus === 'all' || project.status === filterStatus) &&
+           (filterPriority === 'all' || project.priority === filterPriority);
+  });
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -49,6 +64,69 @@ const Projects = () => {
     });
     setIsEditing(true);
     setShowProjectForm(true);
+  };
+  
+  // Handle delete confirmation
+  const handleDeleteConfirm = (project) => {
+    setProjectToDelete(project);
+    setIsDeleteModalOpen(true);
+  };
+  
+  // Handle actual deletion of project
+  const handleDeleteProject = async () => {
+    if (!projectToDelete) return;
+    
+    try {
+      // Check for related sprints, tasks, bugs, team members
+      const relatedSprints = await db.sprints.where('projectId').equals(projectToDelete.id).count();
+      const relatedTasks = await db.tasks.where('projectId').equals(projectToDelete.id).count();
+      const relatedBugs = await db.bugs.where('projectId').equals(projectToDelete.id).count();
+      const relatedTeamMembers = await db.team.where('projectId').equals(projectToDelete.id).count();
+      
+      const totalRelated = relatedSprints + relatedTasks + relatedBugs + relatedTeamMembers;
+      
+      if (totalRelated > 0) {
+        const confirm = window.confirm(
+          `This project has ${relatedSprints} sprints, ${relatedTasks} tasks, ${relatedBugs} bugs, and ${relatedTeamMembers} team members associated with it. Deleting it will remove all these associations. Continue?`
+        );
+        
+        if (!confirm) {
+          setIsDeleteModalOpen(false);
+          setProjectToDelete(null);
+          return;
+        }
+        
+        // Update related entities to remove project association
+        if (relatedSprints > 0) {
+          await db.sprints.where('projectId').equals(projectToDelete.id).delete();
+        }
+        
+        if (relatedTasks > 0) {
+          await db.tasks.where('projectId').equals(projectToDelete.id).delete();
+        }
+        
+        if (relatedBugs > 0) {
+          await db.bugs.where('projectId').equals(projectToDelete.id).delete();
+        }
+        
+        if (relatedTeamMembers > 0) {
+          await db.team.where('projectId').equals(projectToDelete.id).update({ projectId: null });
+        }
+      }
+      
+      // Delete the project
+      await db.projects.delete(projectToDelete.id);
+      
+      // Update state
+      setProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
+      
+      // Close modal
+      setIsDeleteModalOpen(false);
+      setProjectToDelete(null);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project. Please try again.');
+    }
   };
   
   // Handle form submission
@@ -136,36 +214,122 @@ const Projects = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+  
+  // Export projects data to PDF
+  const handleExportPDF = async () => {
+    try {
+      if (!projectsContainerRef.current) return;
+      
+      const pdf = new jsPDF('landscape', 'pt', 'a4');
+      
+      // Set title
+      pdf.setFontSize(18);
+      pdf.text('Projects Report', 40, 40);
+      
+      // Add date
+      pdf.setFontSize(10);
+      pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 60);
+      
+      // Add filters applied
+      pdf.text(`Status Filter: ${filterStatus === 'all' ? 'All Statuses' : filterStatus}`, 40, 80);
+      pdf.text(`Priority Filter: ${filterPriority === 'all' ? 'All Priorities' : filterPriority}`, 40, 100);
+      
+      // Calculate height of content
+      const projectCards = projectsContainerRef.current.querySelectorAll('.project-card');
+      const cardHeight = 250; // Estimated height of each card
+      const cardsPerRow = 3;
+      const numRows = Math.ceil(projectCards.length / cardsPerRow);
+      const totalContentHeight = numRows * cardHeight;
+      
+      // Capture and add content
+      const canvas = await html2canvas(projectsContainerRef.current, {
+        height: totalContentHeight + 100, // Add extra height to ensure all content is captured
+        scrollY: -window.scrollY
+      });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const imgWidth = 750;
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 40, 120, imgWidth, imgHeight);
+      
+      // Save the PDF
+      pdf.save(`Projects_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Projects</h1>
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          onClick={() => {
-            setNewProject({
-              name: '',
-              status: 'Not Started',
-              priority: 'Medium',
-              startDate: '',
-              endDate: ''
-            });
-            setIsEditing(false);
-            setShowProjectForm(true);
-          }}
-        >
-          Create Project
-        </button>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleExportPDF}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md"
+          >
+            Export PDF
+          </button>
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            onClick={() => {
+              setNewProject({
+                name: '',
+                status: 'Not Started',
+                priority: 'Medium',
+                startDate: '',
+                endDate: ''
+              });
+              setIsEditing(false);
+              setShowProjectForm(true);
+            }}
+          >
+            Create Project
+          </button>
+        </div>
+      </div>
+      
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-lg shadow mb-6">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2"
+            >
+              <option value="all">All Statuses</option>
+              {Object.values(PROJECT_STATUS).map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2"
+            >
+              <option value="all">All Priorities</option>
+              {Object.values(PROJECT_PRIORITY).map(priority => (
+                <option key={priority} value={priority}>{priority}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
       
       {/* Project grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        {projects.map(project => {
+      <div ref={projectsContainerRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        {filteredProjects.map(project => {
           const progress = calculateProgress(project);
           
           return (
-            <div key={project.id} className="bg-white rounded-lg shadow overflow-hidden">
+            <div key={project.id} className="bg-white rounded-lg shadow overflow-hidden project-card">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h2 className="text-lg font-semibold text-gray-800">{project.name}</h2>
@@ -214,12 +378,20 @@ const Projects = () => {
                 </div>
                 
                 <div className="flex justify-between">
-                  <button 
-                    className="text-blue-600 hover:text-blue-800"
-                    onClick={() => handleEditProject(project)}
-                  >
-                    Edit
-                  </button>
+                  <div className="space-x-2">
+                    <button 
+                      className="text-blue-600 hover:text-blue-800"
+                      onClick={() => handleEditProject(project)}
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      className="text-red-600 hover:text-red-800"
+                      onClick={() => handleDeleteConfirm(project)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                   <button className="text-blue-600 hover:text-blue-800">
                     View Details
                   </button>
@@ -326,6 +498,37 @@ const Projects = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Delete Project</h2>
+            <p className="mb-4">
+              Are you sure you want to delete the project "{projectToDelete?.name}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                className="px-4 py-2 border border-gray-300 rounded-md"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setProjectToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 bg-red-600 text-white rounded-md"
+                onClick={handleDeleteProject}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
