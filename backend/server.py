@@ -319,7 +319,7 @@ async def get_team_members(project_id: Optional[int] = None, sprint_id: Optional
     team_members = list(db.team.find(query))
     return [format_document(member) for member in team_members]
 
-@app.post("/api/team", status_code=status.HTTP_201_CREATED)
+@app.post("/api/team", status_code=201)
 async def create_team_member(member: dict):
     member["id"] = str(uuid.uuid4())
     member["createdAt"] = datetime.now()
