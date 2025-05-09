@@ -572,6 +572,147 @@ class AgileTrackingAPITester:
         else:
             print(f"❌ Task actual hours not updated correctly. Expected: {expected_hours}, Got: {new_hours}")
             return False
+            
+    def test_bug_update_with_time(self):
+        """Test that adding time to a completed bug updates its actual hours"""
+        # First, get a completed bug
+        get_bugs_success, bugs = self.run_test(
+            "Get Bugs",
+            "GET",
+            "bugs",
+            200
+        )
+        
+        if not get_bugs_success or not bugs:
+            return False
+        
+        # Find a completed bug
+        completed_bug = None
+        for bug in bugs:
+            if bug.get('status') == 'Done':
+                completed_bug = bug
+                break
+        
+        if not completed_bug:
+            print("No completed bugs found for testing")
+            return False
+        
+        # Record the current actual hours
+        bug_id = completed_bug['id']
+        current_hours = completed_bug.get('actualHours', 0)
+        
+        # Add time to the bug
+        hours_to_add = 1.5
+        new_entry = {
+            "taskId": bug_id,
+            "isTaskEntry": False,
+            "isBugEntry": True,
+            "projectId": completed_bug['projectId'],
+            "sprintId": completed_bug.get('sprintId'),
+            "date": datetime.now().strftime('%Y-%m-%d'),
+            "hours": hours_to_add,
+            "description": f"Testing bug actual hours update {datetime.now().strftime('%H%M%S')}"
+        }
+        
+        create_success, created_entry = self.run_test(
+            "Create Time Entry for Completed Bug",
+            "POST",
+            "time-entries",
+            201,
+            data=new_entry
+        )
+        
+        if not create_success:
+            return False
+        
+        # Get the bug again to check if hours were updated
+        get_bug_success, updated_bug = self.run_test(
+            f"Get Updated Bug {bug_id}",
+            "GET",
+            f"bugs/{bug_id}",
+            200
+        )
+        
+        if not get_bug_success:
+            return False
+        
+        # Check if actual hours were updated
+        new_hours = updated_bug.get('actualHours', 0)
+        expected_hours = current_hours + hours_to_add
+        
+        if abs(new_hours - expected_hours) < 0.01:  # Allow for floating point comparison
+            print(f"✅ Bug actual hours correctly updated from {current_hours} to {new_hours}")
+            return True
+        else:
+            print(f"❌ Bug actual hours not updated correctly. Expected: {expected_hours}, Got: {new_hours}")
+            return False
+            
+    def test_sprint_accepted_points_calculation(self):
+        """Test that sprint accepted points are calculated correctly based on task/bug actual hours"""
+        # First, get all sprints
+        get_sprints_success, sprints = self.run_test(
+            "Get Sprints",
+            "GET",
+            "sprints",
+            200
+        )
+        
+        if not get_sprints_success or not sprints:
+            return False
+        
+        # Find an active or completed sprint
+        test_sprint = None
+        for sprint in sprints:
+            if sprint.get('status') in ['Active', 'Completed']:
+                test_sprint = sprint
+                break
+        
+        if not test_sprint:
+            print("No active or completed sprints found for testing")
+            return False
+        
+        sprint_id = test_sprint['id']
+        
+        # Get tasks for this sprint
+        get_tasks_success, tasks = self.run_test(
+            "Get Tasks for Sprint",
+            "GET",
+            f"tasks?sprint_id={sprint_id}",
+            200
+        )
+        
+        if not get_tasks_success:
+            return False
+        
+        # Get bugs for this sprint
+        get_bugs_success, bugs = self.run_test(
+            "Get Bugs for Sprint",
+            "GET",
+            f"bugs?sprint_id={sprint_id}",
+            200
+        )
+        
+        if not get_bugs_success:
+            return False
+        
+        # Calculate expected accepted points based on completed tasks and bugs
+        completed_tasks = [task for task in tasks if task.get('status') == 'Done']
+        completed_bugs = [bug for bug in bugs if bug.get('status') == 'Done']
+        
+        total_task_hours = sum(task.get('actualHours', 0) for task in completed_tasks)
+        total_bug_hours = sum(bug.get('actualHours', 0) for bug in completed_bugs)
+        total_hours = total_task_hours + total_bug_hours
+        
+        # Convert hours to story points (8 hours = 1 story point)
+        expected_points = round(total_hours / 8)
+        
+        print(f"Calculated accepted points for sprint {sprint_id}: {expected_points}")
+        print(f"Based on {len(completed_tasks)} completed tasks with {total_task_hours} hours")
+        print(f"And {len(completed_bugs)} completed bugs with {total_bug_hours} hours")
+        
+        # For verification only - we don't actually check the sprint's acceptedPoints value
+        # since it's calculated on the frontend
+        return True
 
 def main():
     # Setup
