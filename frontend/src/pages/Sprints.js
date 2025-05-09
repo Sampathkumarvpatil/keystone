@@ -355,25 +355,97 @@ const Sprints = () => {
       // Add filters applied
       pdf.text(`Project Filter: ${selectedProjectId === 'all' ? 'All Projects' : getProjectName(parseInt(selectedProjectId))}`, 40, 80);
       
-      // Export chart
+      // Get the sprint chart
       if (chartContainerRef.current) {
-        const chartCanvas = await html2canvas(chartContainerRef.current);
+        const chartCanvas = await html2canvas(chartContainerRef.current, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true
+        });
         const chartImgData = chartCanvas.toDataURL('image/png');
         
-        pdf.addImage(chartImgData, 'PNG', 40, 100, 500, 250);
-      }
-      
-      // Export table
-      if (sprintTableRef.current) {
-        const tableCanvas = await html2canvas(sprintTableRef.current);
-        const tableImgData = tableCanvas.toDataURL('image/png');
+        const chartWidth = 740;
+        const chartHeight = (chartCanvas.height * chartWidth) / chartCanvas.width;
         
-        pdf.addImage(tableImgData, 'PNG', 40, 370, 500, 250);
+        pdf.addImage(chartImgData, 'PNG', 40, 100, chartWidth, chartHeight);
+        
+        // Update y position for table
+        let yPosition = 100 + chartHeight + 20;
+        
+        // Check if we need to add a new page for the table
+        if (yPosition + 300 > pdf.internal.pageSize.getHeight() - 40) {
+          pdf.addPage();
+          yPosition = 40;
+        }
+        
+        // Add table heading
+        pdf.setFontSize(14);
+        pdf.text('Sprint Details', 40, yPosition);
+        yPosition += 20;
+        
+        // Get the sprint table
+        if (sprintTableRef.current) {
+          // Get all sprint rows from the table
+          const rows = sprintTableRef.current.querySelectorAll('tbody tr');
+          const headers = sprintTableRef.current.querySelectorAll('thead th');
+          
+          // Set up table headers
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'bold');
+          
+          let xPos = 40;
+          const columnWidths = [80, 80, 60, 120, 140, 60, 100]; // Adjust these based on your table columns
+          
+          headers.forEach((header, idx) => {
+            if (idx < columnWidths.length) {
+              pdf.text(header.innerText, xPos, yPosition);
+              xPos += columnWidths[idx];
+            }
+          });
+          
+          yPosition += 15;
+          pdf.setFont('helvetica', 'normal');
+          
+          // Draw sprint rows
+          for (let i = 0; i < rows.length; i++) {
+            // Check if we need a new page
+            if (yPosition + 20 > pdf.internal.pageSize.getHeight() - 40) {
+              pdf.addPage();
+              yPosition = 40;
+              
+              // Add headers to new page
+              pdf.setFont('helvetica', 'bold');
+              xPos = 40;
+              headers.forEach((header, idx) => {
+                if (idx < columnWidths.length) {
+                  pdf.text(header.innerText, xPos, yPosition);
+                  xPos += columnWidths[idx];
+                }
+              });
+              yPosition += 15;
+              pdf.setFont('helvetica', 'normal');
+            }
+            
+            const cells = rows[i].querySelectorAll('td');
+            xPos = 40;
+            
+            cells.forEach((cell, idx) => {
+              if (idx < columnWidths.length) {
+                // For cells with complex content, we extract just the text
+                let text = cell.innerText.trim();
+                // Truncate text if too long
+                if (text.length > 20 && idx !== 0) {
+                  text = text.substring(0, 20) + '...';
+                }
+                pdf.text(text, xPos, yPosition);
+                xPos += columnWidths[idx];
+              }
+            });
+            
+            yPosition += 15;
+          }
+        }
       }
-      
-      // Add footer
-      pdf.setFontSize(8);
-      pdf.text('Engineering Director - Sprint Management Report', 40, pdf.internal.pageSize.height - 20);
       
       // Save the PDF
       pdf.save(`Sprints_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
