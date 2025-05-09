@@ -7,24 +7,18 @@ import { Doughnut, Bar } from 'react-chartjs-2';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filterProjectId, filterSprintId }) => {
-  // Use filtered projectId if provided, otherwise use local state
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [calculatedAcceptedPoints, setCalculatedAcceptedPoints] = useState({});
   
   // Get base data
   const projects = useLiveQuery(() => db.projects.toArray());
-  const allSprints = useLiveQuery(() => 
-    selectedProjectId  
-      ? db.sprints.where('projectId').equals(selectedProjectId).toArray()  
-      : db.sprints.toArray() 
-  );
-  
+  const allSprints = useLiveQuery(() => db.sprints.toArray());
   const allTasks = useLiveQuery(() => db.tasks.toArray());
   const allBugs = useLiveQuery(() => db.bugs.toArray());
   
-  // Set project from filter or default
+  // Set project from filter or default - FIXED TO AVOID INFINITE LOOPS
   useEffect(() => {
-    if (filterProjectId && filterProjectId !== 'all') {
+    if (filterProjectId && filterProjectId !== 'all' && filterProjectId !== selectedProjectId) {
       setSelectedProjectId(parseInt(filterProjectId));
     } else if (projects && projects.length > 0 && selectedProjectId === null) {
       setSelectedProjectId(projects[0].id);
@@ -63,11 +57,14 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
     }
   }, [allSprints, allTasks, allBugs]);
   
-  // Apply filters to sprints
-  const sprints = React.useMemo(() => {
+  // Apply filters to sprints - Use memoization to avoid recalculation
+  const filteredSprints = React.useMemo(() => {
     if (!allSprints) return [];
     
-    let filtered = [...allSprints];
+    // First filter by project if selected
+    let filtered = selectedProjectId 
+      ? allSprints.filter(s => s.projectId === selectedProjectId)
+      : [...allSprints];
     
     // Apply specific sprint filter if provided
     if (filterSprintId && filterSprintId !== 'all') {
@@ -75,20 +72,20 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
     }
     
     return filtered;
-  }, [allSprints, filterSprintId]);
+  }, [allSprints, selectedProjectId, filterSprintId]);
   
   // Get active sprint, with preference to filtered sprint if specified
   const activeSprint = React.useMemo(() => {
-    if (!sprints || sprints.length === 0) return null;
+    if (!filteredSprints || filteredSprints.length === 0) return null;
     
     // If a specific sprint is filtered, use that one
     if (filterSprintId && filterSprintId !== 'all') {
-      return sprints[0]; // Should be the only sprint after filtering
+      return filteredSprints[0]; // Should be the only sprint after filtering
     }
     
     // Otherwise find the active sprint
-    return sprints.find(s => s.status === 'Active') || sprints[0];
-  }, [sprints, filterSprintId]);
+    return filteredSprints.find(s => s.status === 'Active') || filteredSprints[0];
+  }, [filteredSprints, filterSprintId]);
   
   // Use calculated accepted points if available
   const getAcceptedPoints = (sprint) => {
@@ -108,7 +105,7 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
       {
         data: [
           getAcceptedPoints(activeSprint), 
-          activeSprint.committedPoints - getAcceptedPoints(activeSprint)
+          Math.max(0, activeSprint.committedPoints - getAcceptedPoints(activeSprint))
         ],
         backgroundColor: ['#34D399', '#E5E7EB'],
         borderWidth: 0,
@@ -191,6 +188,12 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
     ? Math.round((getAcceptedPoints(activeSprint) / activeSprint.committedPoints) * 100)
     : 0;
 
+  // Handle project selection change
+  const handleProjectChange = (e) => {
+    const newProjectId = Number(e.target.value);
+    setSelectedProjectId(newProjectId);
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-6">
@@ -199,7 +202,7 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
         <select 
           className="form-select rounded border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           value={selectedProjectId || ''}
-          onChange={(e) => setSelectedProjectId(Number(e.target.value))}
+          onChange={handleProjectChange}
           disabled={filterProjectId && filterProjectId !== 'all'}
         >
           {projects && projects.map(project => (
