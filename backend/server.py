@@ -507,6 +507,34 @@ def format_document(doc):
     
     return doc
 
+def update_sprint_accepted_points(sprint_id):
+    """Update sprint accepted points based on completed tasks and bugs"""
+    # Get all completed tasks for this sprint
+    completed_tasks = list(db.tasks.find({
+        "sprintId": sprint_id,
+        "status": "Done"
+    }))
+    
+    # Get all completed bugs for this sprint
+    completed_bugs = list(db.bugs.find({
+        "sprintId": sprint_id,
+        "status": "Done"
+    }))
+    
+    # Calculate total actual hours
+    task_hours = sum(task.get("actualHours", 0) for task in completed_tasks)
+    bug_hours = sum(bug.get("actualHours", 0) for bug in completed_bugs)
+    total_hours = task_hours + bug_hours
+    
+    # Convert to story points (8 hours = 1 story point)
+    accepted_points = round(total_hours / 8)
+    
+    # Update sprint accepted points
+    db.sprints.update_one(
+        {"id": sprint_id}, 
+        {"$set": {"acceptedPoints": accepted_points, "updatedAt": datetime.now()}}
+    )
+
 # Database events
 @app.on_event("startup")
 async def startup_db_client():
