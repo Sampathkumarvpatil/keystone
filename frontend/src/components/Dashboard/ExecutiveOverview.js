@@ -7,11 +7,61 @@ import db, { PROJECT_STATUS, TASK_STATUS } from '../../db/db';
 // Register ChartJS components
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
 
-const ExecutiveOverview = () => {
-  const projects = useLiveQuery(() => db.projects.toArray());
-  const sprints = useLiveQuery(() => db.sprints.toArray());
-  const tasks = useLiveQuery(() => db.tasks.toArray());
+const ExecutiveOverview = ({ filterStatus, filterPriority, filterDateRange }) => {
+  const allProjects = useLiveQuery(() => db.projects.toArray());
+  const allSprints = useLiveQuery(() => db.sprints.toArray());
+  const allTasks = useLiveQuery(() => db.tasks.toArray());
   
+  // Apply filters to data
+  const projects = React.useMemo(() => {
+    if (!allProjects) return [];
+    
+    let filtered = [...allProjects];
+    
+    // Filter by status
+    if (filterStatus && filterStatus !== 'all') {
+      filtered = filtered.filter(p => p.status === filterStatus);
+    }
+    
+    // Filter by priority
+    if (filterPriority && filterPriority !== 'all') {
+      filtered = filtered.filter(p => p.priority === filterPriority);
+    }
+    
+    // Filter by date range
+    if (filterDateRange && filterDateRange !== 'all') {
+      const now = new Date();
+      let cutoffDate;
+      
+      if (filterDateRange === 'last-30-days') {
+        cutoffDate = new Date(now.setDate(now.getDate() - 30));
+      } else if (filterDateRange === 'last-90-days') {
+        cutoffDate = new Date(now.setDate(now.getDate() - 90));
+      } else if (filterDateRange === 'this-year') {
+        cutoffDate = new Date(now.getFullYear(), 0, 1);
+      }
+      
+      if (cutoffDate) {
+        filtered = filtered.filter(p => new Date(p.startDate) >= cutoffDate || new Date(p.endDate) >= cutoffDate);
+      }
+    }
+    
+    return filtered;
+  }, [allProjects, filterStatus, filterPriority, filterDateRange]);
+  
+  // Get sprints and tasks for filtered projects
+  const projectIds = projects?.map(p => p.id) || [];
+  
+  const sprints = React.useMemo(() => {
+    if (!allSprints || projectIds.length === 0) return [];
+    return allSprints.filter(s => projectIds.includes(s.projectId));
+  }, [allSprints, projectIds]);
+  
+  const tasks = React.useMemo(() => {
+    if (!allTasks || projectIds.length === 0) return [];
+    return allTasks.filter(t => projectIds.includes(t.projectId));
+  }, [allTasks, projectIds]);
+
   const [projectStatusData, setProjectStatusData] = useState({
     labels: Object.values(PROJECT_STATUS),
     datasets: [
@@ -62,6 +112,7 @@ const ExecutiveOverview = () => {
     ],
   });
 
+  // Update project status chart when projects change
   useEffect(() => {
     if (projects) {
       const statusCounts = Object.values(PROJECT_STATUS).map(
@@ -80,6 +131,7 @@ const ExecutiveOverview = () => {
     }
   }, [projects]);
 
+  // Update sprint performance charts when sprints change
   useEffect(() => {
     if (sprints) {
       // Get the last 6 completed sprints
@@ -142,7 +194,7 @@ const ExecutiveOverview = () => {
   const completedProjects = projects ? projects.filter(p => p.status === PROJECT_STATUS.COMPLETED).length : 0;
   const activeSprints = sprints ? sprints.filter(s => s.status === 'Active').length : 0;
   const tasksInProgress = tasks ? tasks.filter(t => t.status === TASK_STATUS.IN_PROGRESS).length : 0;
-  
+
   const doughnutOptions = {
     plugins: {
       legend: {
@@ -151,7 +203,7 @@ const ExecutiveOverview = () => {
     },
     maintainAspectRatio: false,
   };
-  
+
   const barOptions = {
     responsive: true,
     plugins: {
@@ -174,7 +226,7 @@ const ExecutiveOverview = () => {
     },
     maintainAspectRatio: false,
   };
-  
+
   const lineOptions = {
     responsive: true,
     plugins: {
