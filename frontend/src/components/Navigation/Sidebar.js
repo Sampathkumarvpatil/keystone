@@ -38,8 +38,8 @@ const Sidebar = () => {
     { name: 'Dashboard', icon: HomeIcon, path: '/' },
     { name: 'Projects', icon: ChartBarIcon, path: '/projects' },
     { name: 'Sprints', icon: ClipboardDocumentListIcon, path: '/sprints' },
-    { name: 'Tasks & Bugs', icon: TagIcon, path: '/tasks' },
     { name: 'Team', icon: UserGroupIcon, path: '/team' },
+    { name: 'Tasks & Bugs', icon: TagIcon, path: '/tasks' },
     { name: 'Time Tracking', icon: ClockIcon, path: '/time' },
     { name: 'Settings', icon: Cog6ToothIcon, path: '/settings' },
   ];
