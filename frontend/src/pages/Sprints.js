@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import db, { SPRINT_STATUS } from '../db/db';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import React, { useState, useEffect, useRef } from 'react';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import db, { SPRINT_STATUS } from '../db/db';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
 
 const Sprints = () => {
-  const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formData, setFormData] = useState({
     projectId: '',
@@ -15,15 +14,15 @@ const Sprints = () => {
     startDate: '',
     endDate: '',
     committedPoints: 0,
+    acceptedPoints: 0,
+    addedPoints: 0,
+    descopedPoints: 0,
     status: SPRINT_STATUS.PLANNING
   });
-
-  const projects = useLiveQuery(() => db.projects.toArray());
-  const sprints = useLiveQuery(() => 
-    selectedProjectId 
-      ? db.sprints.where('projectId').equals(parseInt(selectedProjectId)).toArray() 
-      : db.sprints.toArray()
-  );
+  const [projects, setProjects] = useState([]);
+  const [allSprints, setAllSprints] = useState([]);
+  const [filteredSprints, setFilteredSprints] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
