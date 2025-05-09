@@ -120,7 +120,7 @@ const Dashboard = () => {
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-2">Dashboard Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Project Status</label>
             <select
@@ -158,6 +158,43 @@ const Dashboard = () => {
               <option value="last-30-days">Last 30 Days</option>
               <option value="last-90-days">Last 90 Days</option>
               <option value="this-year">This Year</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+            <select
+              value={filterProjectId}
+              onChange={(e) => {
+                setFilterProjectId(e.target.value);
+                setFilterSprintId('all'); // Reset sprint filter when project changes
+              }}
+              className="w-full border border-gray-300 rounded-md p-2"
+            >
+              <option value="all">All Projects</option>
+              {projects && projects.map(project => (
+                <option key={project.id} value={project.id.toString()}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sprint</label>
+            <select
+              value={filterSprintId}
+              onChange={(e) => setFilterSprintId(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2"
+              disabled={filterProjectId === 'all'}
+            >
+              <option value="all">All Sprints</option>
+              {sprints && sprints.map(sprint => (
+                <option key={sprint.id} value={sprint.id.toString()}>
+                  {sprint.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>
