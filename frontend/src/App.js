@@ -11,30 +11,6 @@ import TimeTracking from './pages/TimeTracking';
 import Settings from './pages/Settings';
 import { populateSampleData } from './db/db';
 
-// RouterHandler component for route persistence
-const RouterHandler = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  
-  // Save current location to localStorage when it changes
-  useEffect(() => {
-    if (location.pathname !== '/') {
-      localStorage.setItem('lastRoute', location.pathname);
-    }
-  }, [location]);
-  
-  // On component mount, check if there's a previously saved route
-  useEffect(() => {
-    const savedRoute = localStorage.getItem('lastRoute');
-    // Only redirect if we're at the root and have a saved route
-    if (location.pathname === '/' && savedRoute && savedRoute !== '/') {
-      navigate(savedRoute);
-    }
-  }, [navigate, location.pathname]);
-  
-  return <MainLayout />;
-};
-
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState(null);
@@ -80,7 +56,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<RouterHandler />}>
+        <Route path="/" element={<MainLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="projects" element={<Projects />} />
           <Route path="sprints" element={<Sprints />} />
