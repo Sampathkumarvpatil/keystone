@@ -267,7 +267,7 @@ async def get_bugs(project_id: Optional[int] = None, sprint_id: Optional[int] = 
     bugs = list(db.bugs.find(query))
     return [format_document(bug) for bug in bugs]
 
-@app.post("/api/bugs", status_code=status.HTTP_201_CREATED)
+@app.post("/api/bugs", status_code=201)
 async def create_bug(bug: dict):
     bug["id"] = str(uuid.uuid4())
     bug["createdAt"] = datetime.now()
