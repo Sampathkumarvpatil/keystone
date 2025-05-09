@@ -56,7 +56,7 @@ const Dashboard = () => {
       const sections = dashboardRef.current.querySelectorAll('.bg-white');
       
       // Set initial y position
-      let yPosition = 140;
+      let yPosition = 180;
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 40;
