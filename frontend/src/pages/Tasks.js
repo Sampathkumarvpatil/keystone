@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import db, { TASK_STATUS, PROJECT_PRIORITY, BUG_SEVERITY } from '../db/db';
 
@@ -29,12 +29,104 @@ const Tasks = () => {
     assignee: '',
     estimatedHours: 0
   });
+  const [isTaskEditing, setIsTaskEditing] = useState(false);
+  const [isBugEditing, setIsBugEditing] = useState(false);
+  
+  // Filter states
+  const [taskFilters, setTaskFilters] = useState({
+    projectId: 'all',
+    sprintId: 'all',
+    status: 'all',
+    priority: 'all',
+    assignee: 'all'
+  });
+  
+  const [bugFilters, setBugFilters] = useState({
+    projectId: 'all',
+    sprintId: 'all',
+    status: 'all',
+    priority: 'all',
+    severity: 'all',
+    assignee: 'all'
+  });
 
   const projects = useLiveQuery(() => db.projects.toArray());
   const sprints = useLiveQuery(() => db.sprints.toArray());
   const tasks = useLiveQuery(() => db.tasks.toArray());
   const bugs = useLiveQuery(() => db.bugs.toArray());
   const team = useLiveQuery(() => db.team.toArray());
+  
+  // Filtered tasks and bugs
+  const [filteredTasks, setFilteredTasks] = useState([]);
+  const [filteredBugs, setFilteredBugs] = useState([]);
+  
+  // Apply task filters
+  useEffect(() => {
+    if (!tasks) {
+      setFilteredTasks([]);
+      return;
+    }
+    
+    let filtered = [...tasks];
+    
+    if (taskFilters.projectId !== 'all') {
+      filtered = filtered.filter(task => task.projectId === parseInt(taskFilters.projectId));
+    }
+    
+    if (taskFilters.sprintId !== 'all') {
+      filtered = filtered.filter(task => task.sprintId === parseInt(taskFilters.sprintId));
+    }
+    
+    if (taskFilters.status !== 'all') {
+      filtered = filtered.filter(task => task.status === taskFilters.status);
+    }
+    
+    if (taskFilters.priority !== 'all') {
+      filtered = filtered.filter(task => task.priority === taskFilters.priority);
+    }
+    
+    if (taskFilters.assignee !== 'all') {
+      filtered = filtered.filter(task => task.assignee === taskFilters.assignee);
+    }
+    
+    setFilteredTasks(filtered);
+  }, [tasks, taskFilters]);
+  
+  // Apply bug filters
+  useEffect(() => {
+    if (!bugs) {
+      setFilteredBugs([]);
+      return;
+    }
+    
+    let filtered = [...bugs];
+    
+    if (bugFilters.projectId !== 'all') {
+      filtered = filtered.filter(bug => bug.projectId === parseInt(bugFilters.projectId));
+    }
+    
+    if (bugFilters.sprintId !== 'all') {
+      filtered = filtered.filter(bug => bug.sprintId === parseInt(bugFilters.sprintId));
+    }
+    
+    if (bugFilters.status !== 'all') {
+      filtered = filtered.filter(bug => bug.status === bugFilters.status);
+    }
+    
+    if (bugFilters.priority !== 'all') {
+      filtered = filtered.filter(bug => bug.priority === bugFilters.priority);
+    }
+    
+    if (bugFilters.severity !== 'all') {
+      filtered = filtered.filter(bug => bug.severity === bugFilters.severity);
+    }
+    
+    if (bugFilters.assignee !== 'all') {
+      filtered = filtered.filter(bug => bug.assignee === bugFilters.assignee);
+    }
+    
+    setFilteredBugs(filtered);
+  }, [bugs, bugFilters]);
 
   // Handle task form input changes
   const handleTaskInputChange = (e) => {
@@ -53,61 +145,184 @@ const Tasks = () => {
       [name]: name === 'estimatedHours' ? parseFloat(value) : value,
     });
   };
+  
+  // Handle task filter changes
+  const handleTaskFilterChange = (e) => {
+    const { name, value } = e.target;
+    setTaskFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // If project filter changed, reset sprint filter if the sprint doesn't belong to the selected project
+    if (name === 'projectId' && value !== 'all') {
+      const projectSprints = sprints ? sprints.filter(s => s.projectId === parseInt(value)) : [];
+      const sprintIds = projectSprints.map(s => s.id);
+      
+      if (taskFilters.sprintId !== 'all' && !sprintIds.includes(parseInt(taskFilters.sprintId))) {
+        setTaskFilters(prev => ({
+          ...prev,
+          sprintId: 'all'
+        }));
+      }
+    }
+  };
+  
+  // Handle bug filter changes
+  const handleBugFilterChange = (e) => {
+    const { name, value } = e.target;
+    setBugFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // If project filter changed, reset sprint filter if the sprint doesn't belong to the selected project
+    if (name === 'projectId' && value !== 'all') {
+      const projectSprints = sprints ? sprints.filter(s => s.projectId === parseInt(value)) : [];
+      const sprintIds = projectSprints.map(s => s.id);
+      
+      if (bugFilters.sprintId !== 'all' && !sprintIds.includes(parseInt(bugFilters.sprintId))) {
+        setBugFilters(prev => ({
+          ...prev,
+          sprintId: 'all'
+        }));
+      }
+    }
+  };
 
   // Handle task form submission
   const handleTaskSubmit = async (e) => {
     e.preventDefault();
     
-    const newTask = {
-      ...taskFormData,
-      projectId: parseInt(taskFormData.projectId),
-      sprintId: parseInt(taskFormData.sprintId),
-      actualHours: 0,
-      createdAt: new Date()
-    };
-    
-    await db.tasks.add(newTask);
-    setTaskFormData({
-      projectId: '',
-      sprintId: '',
-      title: '',
-      description: '',
-      status: TASK_STATUS.NEW,
-      priority: PROJECT_PRIORITY.MEDIUM,
-      severity: BUG_SEVERITY.MEDIUM,
-      assignee: '',
-      estimatedHours: 0
-    });
-    setIsTaskFormOpen(false);
+    try {
+      if (isTaskEditing) {
+        // Update existing task
+        const updatedTask = {
+          ...taskFormData,
+          projectId: parseInt(taskFormData.projectId),
+          sprintId: parseInt(taskFormData.sprintId),
+          updatedAt: new Date()
+        };
+        
+        await db.tasks.update(taskFormData.id, updatedTask);
+      } else {
+        // Add new task
+        const newTask = {
+          ...taskFormData,
+          projectId: parseInt(taskFormData.projectId),
+          sprintId: parseInt(taskFormData.sprintId),
+          actualHours: 0,
+          createdAt: new Date()
+        };
+        
+        await db.tasks.add(newTask);
+      }
+      
+      // Reset form
+      setTaskFormData({
+        projectId: '',
+        sprintId: '',
+        title: '',
+        description: '',
+        status: TASK_STATUS.NEW,
+        priority: PROJECT_PRIORITY.MEDIUM,
+        severity: BUG_SEVERITY.MEDIUM,
+        assignee: '',
+        estimatedHours: 0
+      });
+      setIsTaskEditing(false);
+      setIsTaskFormOpen(false);
+    } catch (error) {
+      console.error('Error saving task:', error);
+      alert('Failed to save task. Please try again.');
+    }
   };
 
   // Handle bug form submission
   const handleBugSubmit = async (e) => {
     e.preventDefault();
     
-    const newBug = {
-      ...bugFormData,
-      projectId: parseInt(bugFormData.projectId),
-      sprintId: parseInt(bugFormData.sprintId),
-      taskId: bugFormData.taskId ? parseInt(bugFormData.taskId) : null,
-      actualHours: 0,
-      createdAt: new Date()
-    };
-    
-    await db.bugs.add(newBug);
-    setBugFormData({
-      taskId: '',
-      projectId: '',
-      sprintId: '',
-      title: '',
-      description: '',
-      status: TASK_STATUS.NEW,
-      priority: PROJECT_PRIORITY.MEDIUM,
-      severity: BUG_SEVERITY.MEDIUM,
-      assignee: '',
-      estimatedHours: 0
+    try {
+      if (isBugEditing) {
+        // Update existing bug
+        const updatedBug = {
+          ...bugFormData,
+          projectId: parseInt(bugFormData.projectId),
+          sprintId: parseInt(bugFormData.sprintId),
+          taskId: bugFormData.taskId ? parseInt(bugFormData.taskId) : null,
+          updatedAt: new Date()
+        };
+        
+        await db.bugs.update(bugFormData.id, updatedBug);
+      } else {
+        // Add new bug
+        const newBug = {
+          ...bugFormData,
+          projectId: parseInt(bugFormData.projectId),
+          sprintId: parseInt(bugFormData.sprintId),
+          taskId: bugFormData.taskId ? parseInt(bugFormData.taskId) : null,
+          actualHours: 0,
+          createdAt: new Date()
+        };
+        
+        await db.bugs.add(newBug);
+      }
+      
+      // Reset form
+      setBugFormData({
+        taskId: '',
+        projectId: '',
+        sprintId: '',
+        title: '',
+        description: '',
+        status: TASK_STATUS.NEW,
+        priority: PROJECT_PRIORITY.MEDIUM,
+        severity: BUG_SEVERITY.MEDIUM,
+        assignee: '',
+        estimatedHours: 0
+      });
+      setIsBugEditing(false);
+      setIsBugFormOpen(false);
+    } catch (error) {
+      console.error('Error saving bug:', error);
+      alert('Failed to save bug. Please try again.');
+    }
+  };
+  
+  // Handle edit task
+  const handleEditTask = (task) => {
+    setTaskFormData({
+      id: task.id,
+      projectId: task.projectId.toString(),
+      sprintId: task.sprintId.toString(),
+      title: task.title,
+      description: task.description || '',
+      status: task.status,
+      priority: task.priority,
+      assignee: task.assignee,
+      estimatedHours: task.estimatedHours
     });
-    setIsBugFormOpen(false);
+    setIsTaskEditing(true);
+    setIsTaskFormOpen(true);
+  };
+  
+  // Handle edit bug
+  const handleEditBug = (bug) => {
+    setBugFormData({
+      id: bug.id,
+      taskId: bug.taskId ? bug.taskId.toString() : '',
+      projectId: bug.projectId.toString(),
+      sprintId: bug.sprintId.toString(),
+      title: bug.title,
+      description: bug.description || '',
+      status: bug.status,
+      priority: bug.priority,
+      severity: bug.severity,
+      assignee: bug.assignee,
+      estimatedHours: bug.estimatedHours
+    });
+    setIsBugEditing(true);
+    setIsBugFormOpen(true);
   };
 
   // Get sprint options for the selected project
@@ -200,6 +415,17 @@ const Tasks = () => {
             onClick={() => {
               setIsTaskFormOpen(true);
               setIsBugFormOpen(false);
+              setIsTaskEditing(false);
+              setTaskFormData({
+                projectId: '',
+                sprintId: '',
+                title: '',
+                description: '',
+                status: TASK_STATUS.NEW,
+                priority: PROJECT_PRIORITY.MEDIUM,
+                assignee: '',
+                estimatedHours: 0
+              });
             }}
             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow-md"
           >
@@ -209,6 +435,19 @@ const Tasks = () => {
             onClick={() => {
               setIsBugFormOpen(true);
               setIsTaskFormOpen(false);
+              setIsBugEditing(false);
+              setBugFormData({
+                taskId: '',
+                projectId: '',
+                sprintId: '',
+                title: '',
+                description: '',
+                status: TASK_STATUS.NEW,
+                priority: PROJECT_PRIORITY.MEDIUM,
+                severity: BUG_SEVERITY.MEDIUM,
+                assignee: '',
+                estimatedHours: 0
+              });
             }}
             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow-md"
           >
@@ -242,7 +481,9 @@ const Tasks = () => {
       {/* Task Form */}
       {isTaskFormOpen && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Create New Task</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            {isTaskEditing ? 'Edit Task' : 'Create New Task'}
+          </h2>
           <form onSubmit={handleTaskSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -379,7 +620,7 @@ const Tasks = () => {
                 type="submit"
                 className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
               >
-                Create Task
+                {isTaskEditing ? 'Update Task' : 'Create Task'}
               </button>
             </div>
           </form>
@@ -389,7 +630,9 @@ const Tasks = () => {
       {/* Bug Form */}
       {isBugFormOpen && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Report Bug</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">
+            {isBugEditing ? 'Edit Bug' : 'Report Bug'}
+          </h2>
           <form onSubmit={handleBugSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -559,7 +802,7 @@ const Tasks = () => {
                 type="submit"
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
               >
-                Report Bug
+                {isBugEditing ? 'Update Bug' : 'Report Bug'}
               </button>
             </div>
           </form>
@@ -570,6 +813,96 @@ const Tasks = () => {
       {activeTab === 'tasks' && (
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-bold text-gray-800 mb-4">All Tasks</h2>
+          
+          {/* Task Filters */}
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Project</label>
+              <select
+                name="projectId"
+                value={taskFilters.projectId}
+                onChange={handleTaskFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Projects</option>
+                {projects && projects.map(project => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Sprint</label>
+              <select
+                name="sprintId"
+                value={taskFilters.sprintId}
+                onChange={handleTaskFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Sprints</option>
+                {taskFilters.projectId === 'all'
+                  ? sprints && sprints.map(sprint => (
+                      <option key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </option>
+                    ))
+                  : getSprintOptions(taskFilters.projectId).map(sprint => (
+                      <option key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </option>
+                    ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Status</label>
+              <select
+                name="status"
+                value={taskFilters.status}
+                onChange={handleTaskFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Statuses</option>
+                {Object.values(TASK_STATUS).map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Priority</label>
+              <select
+                name="priority"
+                value={taskFilters.priority}
+                onChange={handleTaskFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Priorities</option>
+                {Object.values(PROJECT_PRIORITY).map(priority => (
+                  <option key={priority} value={priority}>{priority}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Assignee</label>
+              <select
+                name="assignee"
+                value={taskFilters.assignee}
+                onChange={handleTaskFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Assignees</option>
+                {team && team.map(member => (
+                  <option key={member.id} value={member.name}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white">
@@ -599,41 +932,54 @@ const Tasks = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {tasks && tasks.map(task => (
-                  <tr key={task.id} className="hover:bg-gray-50">
-                    <td className="py-4 px-4 text-sm font-medium text-gray-900">
-                      {task.title}
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <div>
-                        {getProjectName(task.projectId)}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {getSprintName(task.sprintId)}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(task.status)}`}>
-                        {task.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      {task.assignee}
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      {task.estimatedHours} hrs
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <button className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
-                      <button className="text-gray-600 hover:text-gray-900">View</button>
+                {filteredTasks && filteredTasks.length > 0 ? (
+                  filteredTasks.map(task => (
+                    <tr key={task.id} className="hover:bg-gray-50">
+                      <td className="py-4 px-4 text-sm font-medium text-gray-900">
+                        {task.title}
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        <div>
+                          {getProjectName(task.projectId)}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {getSprintName(task.sprintId)}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(task.status)}`}>
+                          {task.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(task.priority)}`}>
+                          {task.priority}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        {task.assignee}
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        {task.estimatedHours} hrs
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        <button 
+                          onClick={() => handleEditTask(task)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-3"
+                        >
+                          Edit
+                        </button>
+                        <button className="text-gray-600 hover:text-gray-900">View</button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="py-4 px-4 text-center text-gray-500">
+                      No tasks found matching the current filters.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -644,6 +990,111 @@ const Tasks = () => {
       {activeTab === 'bugs' && (
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-bold text-gray-800 mb-4">All Bugs</h2>
+          
+          {/* Bug Filters */}
+          <div className="mb-4 grid grid-cols-1 md:grid-cols-6 gap-4">
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Project</label>
+              <select
+                name="projectId"
+                value={bugFilters.projectId}
+                onChange={handleBugFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Projects</option>
+                {projects && projects.map(project => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Sprint</label>
+              <select
+                name="sprintId"
+                value={bugFilters.sprintId}
+                onChange={handleBugFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Sprints</option>
+                {bugFilters.projectId === 'all'
+                  ? sprints && sprints.map(sprint => (
+                      <option key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </option>
+                    ))
+                  : getSprintOptions(bugFilters.projectId).map(sprint => (
+                      <option key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </option>
+                    ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Status</label>
+              <select
+                name="status"
+                value={bugFilters.status}
+                onChange={handleBugFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Statuses</option>
+                {Object.values(TASK_STATUS).map(status => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Priority</label>
+              <select
+                name="priority"
+                value={bugFilters.priority}
+                onChange={handleBugFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Priorities</option>
+                {Object.values(PROJECT_PRIORITY).map(priority => (
+                  <option key={priority} value={priority}>{priority}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Severity</label>
+              <select
+                name="severity"
+                value={bugFilters.severity}
+                onChange={handleBugFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Severities</option>
+                {Object.values(BUG_SEVERITY).map(severity => (
+                  <option key={severity} value={severity}>{severity}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-1 text-sm">Assignee</label>
+              <select
+                name="assignee"
+                value={bugFilters.assignee}
+                onChange={handleBugFilterChange}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="all">All Assignees</option>
+                {team && team.map(member => (
+                  <option key={member.id} value={member.name}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white">
@@ -676,46 +1127,59 @@ const Tasks = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {bugs && bugs.map(bug => (
-                  <tr key={bug.id} className="hover:bg-gray-50">
-                    <td className="py-4 px-4 text-sm font-medium text-gray-900">
-                      {bug.title}
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <div>
-                        {getProjectName(bug.projectId)}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {getSprintName(bug.sprintId)}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      {getTaskName(bug.taskId)}
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(bug.status)}`}>
-                        {bug.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(bug.priority)}`}>
-                        {bug.priority}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getSeverityColor(bug.severity)}`}>
-                        {bug.severity}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      {bug.assignee}
-                    </td>
-                    <td className="py-4 px-4 text-sm text-gray-500">
-                      <button className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
-                      <button className="text-gray-600 hover:text-gray-900">View</button>
+                {filteredBugs && filteredBugs.length > 0 ? (
+                  filteredBugs.map(bug => (
+                    <tr key={bug.id} className="hover:bg-gray-50">
+                      <td className="py-4 px-4 text-sm font-medium text-gray-900">
+                        {bug.title}
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        <div>
+                          {getProjectName(bug.projectId)}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {getSprintName(bug.sprintId)}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        {getTaskName(bug.taskId)}
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(bug.status)}`}>
+                          {bug.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(bug.priority)}`}>
+                          {bug.priority}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        <span className={`px-2 py-1 rounded-full text-xs ${getSeverityColor(bug.severity)}`}>
+                          {bug.severity}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        {bug.assignee}
+                      </td>
+                      <td className="py-4 px-4 text-sm text-gray-500">
+                        <button 
+                          onClick={() => handleEditBug(bug)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-3"
+                        >
+                          Edit
+                        </button>
+                        <button className="text-gray-600 hover:text-gray-900">View</button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" className="py-4 px-4 text-center text-gray-500">
+                      No bugs found matching the current filters.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
