@@ -11,29 +11,105 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [calculatedAcceptedPoints, setCalculatedAcceptedPoints] = useState({});
   
+  // Get base data
   const projects = useLiveQuery(() => db.projects.toArray());
-  const sprints = useLiveQuery(() => 
-    selectedProjectId 
-      ? db.sprints.where('projectId').equals(selectedProjectId).toArray() 
-      : db.sprints.toArray()
+  const allSprints = useLiveQuery(() => 
+    selectedProjectId  
+      ? db.sprints.where('projectId').equals(selectedProjectId).toArray()  
+      : db.sprints.toArray() 
   );
   
-  // Set first project as selected by default when data loads
+  const allTasks = useLiveQuery(() => db.tasks.toArray());
+  const allBugs = useLiveQuery(() => db.bugs.toArray());
+  
+  // Set project from filter or default
   useEffect(() => {
-    if (projects && projects.length > 0 && !selectedProjectId) {
+    if (filterProjectId && filterProjectId !== 'all') {
+      setSelectedProjectId(parseInt(filterProjectId));
+    } else if (projects && projects.length > 0 && !selectedProjectId) {
       setSelectedProjectId(projects[0].id);
     }
-  }, [projects, selectedProjectId]);
+  }, [projects, selectedProjectId, filterProjectId]);
   
-  // Get active sprint
-  const activeSprint = sprints ? sprints.find(s => s.status === 'Active') : null;
+  // Calculate accepted points from completed tasks and bugs
+  useEffect(() => {
+    if (allSprints && allTasks && allBugs) {
+      const pointsMap = {};
+      
+      // Calculate for each sprint
+      allSprints.forEach(sprint => {
+        // Get completed tasks for this sprint
+        const completedTasks = allTasks.filter(
+          task => task.sprintId === sprint.id && task.status === 'Done'
+        );
+        
+        // Get completed bugs for this sprint
+        const completedBugs = allBugs.filter(
+          bug => bug.sprintId === sprint.id && bug.status === 'Done'
+        );
+        
+        // Calculate total actual hours
+        const taskHours = completedTasks.reduce((sum, task) => sum + (task.actualHours || 0), 0);
+        const bugHours = completedBugs.reduce((sum, bug) => sum + (bug.actualHours || 0), 0);
+        const totalHours = taskHours + bugHours;
+        
+        // Convert to story points (8 hours = 1 story point)
+        const calculatedPoints = Math.round(totalHours / 8);
+        
+        pointsMap[sprint.id] = calculatedPoints;
+      });
+      
+      setCalculatedAcceptedPoints(pointsMap);
+    }
+  }, [allSprints, allTasks, allBugs]);
   
+  // Apply filters to sprints
+  const sprints = React.useMemo(() => {
+    if (!allSprints) return [];
+    
+    let filtered = [...allSprints];
+    
+    // Apply specific sprint filter if provided
+    if (filterSprintId && filterSprintId !== 'all') {
+      filtered = filtered.filter(s => s.id === parseInt(filterSprintId));
+    }
+    
+    return filtered;
+  }, [allSprints, filterSprintId]);
+  
+  // Get active sprint, with preference to filtered sprint if specified
+  const activeSprint = React.useMemo(() => {
+    if (!sprints || sprints.length === 0) return null;
+    
+    // If a specific sprint is filtered, use that one
+    if (filterSprintId && filterSprintId !== 'all') {
+      return sprints[0]; // Should be the only sprint after filtering
+    }
+    
+    // Otherwise find the active sprint
+    return sprints.find(s => s.status === 'Active') || sprints[0];
+  }, [sprints, filterSprintId]);
+  
+  // Use calculated accepted points if available
+  const getAcceptedPoints = (sprint) => {
+    if (!sprint) return 0;
+    
+    // If sprint is in planning, always return 0
+    if (sprint.status === 'Planning') return 0;
+    
+    // Otherwise use calculated points
+    return calculatedAcceptedPoints[sprint.id] || sprint.acceptedPoints || 0;
+  };
+
   // Prepare data for commitment reliability gauge
   const commitmentReliabilityData = activeSprint ? {
     labels: ['Accepted', 'Remaining'],
     datasets: [
       {
-        data: [activeSprint.acceptedPoints, activeSprint.committedPoints - activeSprint.acceptedPoints],
+        data: [
+          getAcceptedPoints(activeSprint), 
+          activeSprint.committedPoints - getAcceptedPoints(activeSprint)
+        ],
         backgroundColor: ['#34D399', '#E5E7EB'],
         borderWidth: 0,
         cutout: '70%',
@@ -50,7 +126,7 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
       },
     ],
   };
-  
+
   // Prepare data for story points chart
   const storyPointsData = activeSprint ? {
     labels: ['Committed', 'Accepted', 'Added', 'Descoped'],
@@ -59,7 +135,7 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
         label: 'Points',
         data: [
           activeSprint.committedPoints,
-          activeSprint.acceptedPoints,
+          getAcceptedPoints(activeSprint),
           activeSprint.addedPoints,
           activeSprint.descopedPoints,
         ],
@@ -78,7 +154,7 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
       },
     ],
   };
-  
+
   // Options for gauge chart
   const gaugeOptions = {
     plugins: {
@@ -93,7 +169,7 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
     circumference: 180,
     maintainAspectRatio: false,
   };
-  
+
   // Options for bar chart
   const barOptions = {
     responsive: true,
@@ -111,10 +187,10 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
   };
 
   // Calculate completion percentage
-  const completionPercentage = activeSprint 
-    ? Math.round((activeSprint.acceptedPoints / activeSprint.committedPoints) * 100) 
+  const completionPercentage = activeSprint && activeSprint.committedPoints > 0
+    ? Math.round((getAcceptedPoints(activeSprint) / activeSprint.committedPoints) * 100)
     : 0;
-  
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="flex justify-between items-center mb-6">
@@ -124,6 +200,7 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
           className="form-select rounded border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
           value={selectedProjectId || ''}
           onChange={(e) => setSelectedProjectId(Number(e.target.value))}
+          disabled={filterProjectId && filterProjectId !== 'all'}
         >
           {projects && projects.map(project => (
             <option key={project.id} value={project.id}>
@@ -202,7 +279,12 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
               </div>
               <div className="p-4 bg-green-50 rounded">
                 <div className="text-sm text-green-600">Accepted Points</div>
-                <div className="text-2xl font-bold text-green-800">{activeSprint.acceptedPoints}</div>
+                <div className="text-2xl font-bold text-green-800">{getAcceptedPoints(activeSprint)}</div>
+                {activeSprint.status !== 'Planning' && (
+                  <div className="text-xs text-green-500">
+                    (calculated from tasks)
+                  </div>
+                )}
               </div>
               <div className="p-4 bg-yellow-50 rounded">
                 <div className="text-sm text-yellow-600">Added Points</div>
