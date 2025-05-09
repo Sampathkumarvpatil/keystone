@@ -10,8 +10,9 @@ db.version(1).stores({
   sprints: '++id, projectId, name, startDate, endDate, status, committedPoints, acceptedPoints, addedPoints, descopedPoints, createdAt, updatedAt',
   tasks: '++id, projectId, sprintId, title, description, status, priority, assigneeId, estimatedHours, actualHours, createdAt, updatedAt',
   bugs: '++id, taskId, projectId, sprintId, title, description, status, priority, severity, assigneeId, estimatedHours, actualHours, createdAt, updatedAt',
-  teamMembers: '++id, name, role, capacity, avatar, createdAt, updatedAt',
-  team: '++id, name, role, capacity, avatar, createdAt, updatedAt', // Duplicate of teamMembers for backward compatibility
+  teamMembers: '++id, name, role, capacity, avatar, projectId, sprintId, createdAt, updatedAt',
+  team: '++id, name, role, capacity, avatar, projectId, sprintId, createdAt, updatedAt', // Duplicate of teamMembers for backward compatibility
+  timeEntries: '++id, taskId, projectId, sprintId, date, hours, description, createdAt'
 });
 
 // Define constants for status, priority, etc.
@@ -90,6 +91,8 @@ export const populateSampleData = async () => {
       role: 'Frontend Developer',
       capacity: 40,
       avatar: '',
+      projectId: projectIds[0],
+      sprintId: null,
       createdAt: new Date()
     },
     {
@@ -97,6 +100,8 @@ export const populateSampleData = async () => {
       role: 'Backend Developer',
       capacity: 35,
       avatar: '',
+      projectId: projectIds[1],
+      sprintId: null,
       createdAt: new Date()
     },
     {
@@ -104,6 +109,8 @@ export const populateSampleData = async () => {
       role: 'UX Designer',
       capacity: 30,
       avatar: '',
+      projectId: projectIds[0],
+      sprintId: null,
       createdAt: new Date()
     },
     {
@@ -111,6 +118,8 @@ export const populateSampleData = async () => {
       role: 'Project Manager',
       capacity: 40,
       avatar: '',
+      projectId: projectIds[2],
+      sprintId: null,
       createdAt: new Date()
     }
   ], { allKeys: true });
@@ -302,6 +311,49 @@ export const populateSampleData = async () => {
       createdAt: new Date()
     }
   ]);
+  
+  // Create time entries table if it doesn't exist
+  if (!(await db.table('timeEntries').count())) {
+    // Sample time entries
+    await db.timeEntries.bulkAdd([
+      {
+        taskId: 1,
+        projectId: projectIds[0],
+        sprintId: sprintIds[0],
+        date: '2023-03-01',
+        hours: 3,
+        description: 'Worked on redesigning the homepage wireframes',
+        createdAt: new Date()
+      },
+      {
+        taskId: 2,
+        projectId: projectIds[0],
+        sprintId: sprintIds[0],
+        date: '2023-03-02',
+        hours: 4,
+        description: 'Implemented responsive navigation menu',
+        createdAt: new Date()
+      },
+      {
+        taskId: 3,
+        projectId: projectIds[0],
+        sprintId: sprintIds[1],
+        date: '2023-03-03',
+        hours: 2,
+        description: 'Optimized image loading and compression',
+        createdAt: new Date()
+      },
+      {
+        taskId: 4,
+        projectId: projectIds[0],
+        sprintId: sprintIds[1],
+        date: '2023-03-04',
+        hours: 5,
+        description: 'Set up user authentication with OAuth',
+        createdAt: new Date()
+      }
+    ]);
+  }
 };
 
 export default db;
