@@ -59,8 +59,16 @@ const ExecutiveOverview = ({ filterStatus, filterPriority, filterDateRange, filt
   
   const sprints = React.useMemo(() => {
     if (!allSprints || projectIds.length === 0) return [];
-    return allSprints.filter(s => projectIds.includes(s.projectId));
-  }, [allSprints, projectIds]);
+    
+    let filtered = allSprints.filter(s => projectIds.includes(s.projectId));
+    
+    // Filter by specific sprint
+    if (filterSprintId && filterSprintId !== 'all') {
+      filtered = filtered.filter(s => s.id === parseInt(filterSprintId));
+    }
+    
+    return filtered;
+  }, [allSprints, projectIds, filterSprintId]);
   
   const tasks = React.useMemo(() => {
     if (!allTasks || projectIds.length === 0) return [];
