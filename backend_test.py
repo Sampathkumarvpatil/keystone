@@ -733,6 +733,8 @@ def main():
     # Test other functionality
     time_tracking_success = tester.test_time_tracking_endpoints()
     task_update_success = tester.test_task_update_with_time()
+    bug_update_success = tester.test_bug_update_with_time()
+    sprint_points_success = tester.test_sprint_accepted_points_calculation()
     
     # Print results
     print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
@@ -747,6 +749,8 @@ def main():
     print(f"Bugs endpoints (with delete): {'✅ PASSED' if bugs_success else '❌ FAILED'}")
     print(f"Time tracking endpoints: {'✅ PASSED' if time_tracking_success else '❌ FAILED'}")
     print(f"Task update with time: {'✅ PASSED' if task_update_success else '❌ FAILED'}")
+    print(f"Bug update with time: {'✅ PASSED' if bug_update_success else '❌ FAILED'}")
+    print(f"Sprint accepted points calculation: {'✅ PASSED' if sprint_points_success else '❌ FAILED'}")
     
     return 0 if tester.tests_passed == tester.tests_run else 1
 
