@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import db from '../db/db';
@@ -14,9 +15,18 @@ const Team = () => {
     name: '',
     role: '',
     capacity: 40,
-    avatar: ''
+    avatar: '',
+    projectId: '',
+    sprintId: ''
   });
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Filters
+  const [filters, setFilters] = useState({
+    role: 'all',
+    projectId: 'all',
+    sprintId: 'all'
+  });
   
   // Chart refs
   const allocationChartRef = useRef(null);
@@ -24,29 +34,59 @@ const Team = () => {
   const workloadChartRef = useRef(null);
   const workloadChartInstance = useRef(null);
 
-  // Load team data
+  // Live queries for data
+  const allProjects = useLiveQuery(() => db.projects.toArray());
+  const allTeam = useLiveQuery(() => db.team.toArray());
+  const allTasks = useLiveQuery(() => db.tasks.toArray());
+  const allBugs = useLiveQuery(() => db.bugs.toArray());
+  const allSprints = useLiveQuery(() => 
+    filters.projectId !== 'all' 
+      ? db.sprints.where('projectId').equals(parseInt(filters.projectId)).toArray()
+      : db.sprints.toArray()
+  );
+
+  // Initialize data from live queries
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const teamData = await db.team.toArray();
-        setTeam(teamData);
-        
-        const tasksData = await db.tasks.toArray();
-        setTasks(tasksData);
-        
-        const bugsData = await db.bugs.toArray();
-        setBugs(bugsData);
-      } catch (error) {
-        console.error('Error loading team data:', error);
-      }
-    };
+    if (allTeam) setTeam(allTeam);
+    if (allTasks) setTasks(allTasks);
+    if (allBugs) setBugs(allBugs);
+  }, [allTeam, allTasks, allBugs]);
+  
+  // Apply filters to team members
+  const filteredTeam = useLiveQuery(() => {
+    if (!allTeam) return [];
     
-    loadData();
-  }, []);
+    let filtered = [...allTeam];
+    
+    if (filters.role !== 'all') {
+      filtered = filtered.filter(member => member.role === filters.role);
+    }
+    
+    if (filters.projectId !== 'all') {
+      filtered = filtered.filter(member => 
+        member.projectId && member.projectId.toString() === filters.projectId
+      );
+    }
+    
+    if (filters.sprintId !== 'all') {
+      filtered = filtered.filter(member => 
+        member.sprintId && member.sprintId.toString() === filters.sprintId
+      );
+    }
+    
+    return filtered;
+  }, [allTeam, filters]);
+  
+  // Get all unique roles for filter dropdown
+  const roles = useLiveQuery(() => {
+    if (!allTeam) return [];
+    const roleSet = new Set(allTeam.map(member => member.role));
+    return Array.from(roleSet);
+  }, [allTeam]);
   
   // Initialize allocation chart when data changes
   useEffect(() => {
-    if (allocationChartRef.current && team.length > 0) {
+    if (allocationChartRef.current && filteredTeam && filteredTeam.length > 0) {
       // Destroy previous chart instance if it exists
       if (allocationChartInstance.current) {
         allocationChartInstance.current.destroy();
@@ -62,19 +102,19 @@ const Team = () => {
       allocationChartRef.current.height = containerHeight;
       
       // Prepare data
-      const roles = {};
-      team.forEach(member => {
-        roles[member.role] = (roles[member.role] || 0) + 1;
+      const roleCount = {};
+      filteredTeam.forEach(member => {
+        roleCount[member.role] = (roleCount[member.role] || 0) + 1;
       });
       
       const ctx = allocationChartRef.current.getContext('2d');
       allocationChartInstance.current = new ChartJS(ctx, {
         type: 'pie',
         data: {
-          labels: Object.keys(roles),
+          labels: Object.keys(roleCount),
           datasets: [
             {
-              data: Object.values(roles),
+              data: Object.values(roleCount),
               backgroundColor: [
                 'rgba(54, 162, 235, 0.7)',
                 'rgba(75, 192, 192, 0.7)',
@@ -111,11 +151,11 @@ const Team = () => {
         allocationChartInstance.current.destroy();
       }
     };
-  }, [team]);
+  }, [filteredTeam]);
   
   // Initialize workload chart when data changes
   useEffect(() => {
-    if (workloadChartRef.current && team.length > 0 && (tasks.length > 0 || bugs.length > 0)) {
+    if (workloadChartRef.current && filteredTeam && filteredTeam.length > 0 && (tasks.length > 0 || bugs.length > 0)) {
       // Destroy previous chart instance if it exists
       if (workloadChartInstance.current) {
         workloadChartInstance.current.destroy();
@@ -134,7 +174,7 @@ const Team = () => {
       const memberTasks = {};
       const memberBugs = {};
       
-      team.forEach(member => {
+      filteredTeam.forEach(member => {
         memberTasks[member.name] = 0;
         memberBugs[member.name] = 0;
       });
@@ -196,7 +236,7 @@ const Team = () => {
         workloadChartInstance.current.destroy();
       }
     };
-  }, [team, tasks, bugs]);
+  }, [filteredTeam, tasks, bugs]);
   
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -210,32 +250,47 @@ const Team = () => {
     e.preventDefault();
     
     try {
+      const teamData = {
+        ...formData,
+        projectId: formData.projectId ? parseInt(formData.projectId) : null,
+        sprintId: formData.sprintId ? parseInt(formData.sprintId) : null
+      };
+      
       let id;
       if (isEditing) {
         // Update existing team member
         id = formData.id;
         await db.team.update(id, {
-          ...formData,
+          ...teamData,
           updatedAt: new Date()
         });
         
+        // Also update in teamMembers for backward compatibility
+        const existingInTeamMembers = await db.teamMembers.get({ name: formData.name });
+        if (existingInTeamMembers) {
+          await db.teamMembers.update(existingInTeamMembers.id, {
+            ...teamData,
+            updatedAt: new Date()
+          });
+        }
+        
         setTeam(prev => 
-          prev.map(member => member.id === id ? { ...formData, id, updatedAt: new Date() } : member)
+          prev.map(member => member.id === id ? { ...teamData, id, updatedAt: new Date() } : member)
         );
       } else {
         // Add new team member
         id = await db.team.add({
-          ...formData,
+          ...teamData,
           createdAt: new Date()
         });
         
         // Also add to teamMembers for backward compatibility
         await db.teamMembers.add({
-          ...formData,
+          ...teamData,
           createdAt: new Date()
         });
         
-        setTeam(prev => [...prev, { ...formData, id, createdAt: new Date() }]);
+        setTeam(prev => [...prev, { ...teamData, id, createdAt: new Date() }]);
       }
       
       // Reset form
@@ -243,7 +298,9 @@ const Team = () => {
         name: '',
         role: '',
         capacity: 40,
-        avatar: ''
+        avatar: '',
+        projectId: '',
+        sprintId: ''
       });
       setIsEditing(false);
       setShowForm(false);
@@ -259,7 +316,9 @@ const Team = () => {
       name: member.name,
       role: member.role,
       capacity: member.capacity,
-      avatar: member.avatar || ''
+      avatar: member.avatar || '',
+      projectId: member.projectId ? member.projectId.toString() : '',
+      sprintId: member.sprintId ? member.sprintId.toString() : ''
     });
     setIsEditing(true);
     setShowForm(true);
@@ -273,6 +332,43 @@ const Team = () => {
     return bugs.filter(bug => bug.assignee === memberName).length;
   };
   
+  const getProjectName = (projectId) => {
+    if (!allProjects || !projectId) return 'Not Assigned';
+    const project = allProjects.find(p => p.id === projectId);
+    return project ? project.name : 'Not Assigned';
+  };
+  
+  const getSprintName = (sprintId) => {
+    if (!allSprints || !sprintId) return 'Not Assigned';
+    const sprint = allSprints.find(s => s.id === sprintId);
+    return sprint ? sprint.name : 'Not Assigned';
+  };
+  
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    
+    // If changing project, reset sprint filter
+    if (name === 'projectId') {
+      setFilters(prev => ({
+        ...prev,
+        [name]: value,
+        sprintId: 'all'
+      }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+  
+  // Get sprints based on selected project
+  const getFilteredSprints = () => {
+    if (!allSprints) return [];
+    if (filters.projectId === 'all') return allSprints;
+    return allSprints.filter(sprint => sprint.projectId === parseInt(filters.projectId));
+  };
+  
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -283,7 +379,9 @@ const Team = () => {
               name: '',
               role: '',
               capacity: 40,
-              avatar: ''
+              avatar: '',
+              projectId: '',
+              sprintId: ''
             });
             setIsEditing(false);
             setShowForm(true);
@@ -292,6 +390,65 @@ const Team = () => {
         >
           Add Team Member
         </button>
+      </div>
+      
+      {/* Filters */}
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Filters</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-gray-700 mb-1">Role</label>
+            <select
+              name="role"
+              value={filters.role}
+              onChange={handleFilterChange}
+              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Roles</option>
+              {roles && roles.map(role => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-gray-700 mb-1">Project</label>
+            <select
+              name="projectId"
+              value={filters.projectId}
+              onChange={handleFilterChange}
+              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Projects</option>
+              {allProjects && allProjects.map(project => (
+                <option key={project.id} value={project.id.toString()}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-gray-700 mb-1">Sprint</label>
+            <select
+              name="sprintId"
+              value={filters.sprintId}
+              onChange={handleFilterChange}
+              className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={filters.projectId === 'all'}
+            >
+              <option value="all">All Sprints</option>
+              {getFilteredSprints().map(sprint => (
+                <option key={sprint.id} value={sprint.id.toString()}>
+                  {sprint.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
       
       {/* Team Member Form */}
@@ -324,6 +481,43 @@ const Team = () => {
                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 mb-1">Project</label>
+                <select
+                  name="projectId"
+                  value={formData.projectId}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Not Assigned</option>
+                  {allProjects && allProjects.map(project => (
+                    <option key={project.id} value={project.id.toString()}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 mb-1">Sprint</label>
+                <select
+                  name="sprintId"
+                  value={formData.sprintId}
+                  onChange={handleInputChange}
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!formData.projectId}
+                >
+                  <option value="">Not Assigned</option>
+                  {allSprints && formData.projectId && allSprints
+                    .filter(sprint => sprint.projectId === parseInt(formData.projectId))
+                    .map(sprint => (
+                      <option key={sprint.id} value={sprint.id.toString()}>
+                        {sprint.name}
+                      </option>
+                    ))}
+                </select>
               </div>
               
               <div>
@@ -400,6 +594,8 @@ const Team = () => {
               <tr>
                 <th className="py-3 px-4 text-left">NAME</th>
                 <th className="py-3 px-4 text-left">ROLE</th>
+                <th className="py-3 px-4 text-left">PROJECT</th>
+                <th className="py-3 px-4 text-left">SPRINT</th>
                 <th className="py-3 px-4 text-left">CAPACITY</th>
                 <th className="py-3 px-4 text-left">ASSIGNED TASKS</th>
                 <th className="py-3 px-4 text-left">ASSIGNED BUGS</th>
@@ -407,8 +603,8 @@ const Team = () => {
               </tr>
             </thead>
             <tbody>
-              {team && team.length > 0 ? (
-                team.map(member => (
+              {filteredTeam && filteredTeam.length > 0 ? (
+                filteredTeam.map(member => (
                   <tr key={member.id} className="border-t border-gray-200">
                     <td className="py-3 px-4">
                       <div className="flex items-center">
@@ -427,6 +623,8 @@ const Team = () => {
                       </div>
                     </td>
                     <td className="py-3 px-4">{member.role}</td>
+                    <td className="py-3 px-4">{getProjectName(member.projectId)}</td>
+                    <td className="py-3 px-4">{getSprintName(member.sprintId)}</td>
                     <td className="py-3 px-4">{member.capacity} hours/week</td>
                     <td className="py-3 px-4">{getTaskCount(member.name)}</td>
                     <td className="py-3 px-4">{getBugCount(member.name)}</td>
@@ -442,8 +640,10 @@ const Team = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="py-3 px-4 text-center text-gray-500">
-                    No team members found. Add your first team member to get started.
+                  <td colSpan="8" className="py-3 px-4 text-center text-gray-500">
+                    {filteredTeam && filteredTeam.length === 0 && team.length > 0 ? 
+                      'No team members match the current filters.' : 
+                      'No team members found. Add your first team member to get started.'}
                   </td>
                 </tr>
               )}
