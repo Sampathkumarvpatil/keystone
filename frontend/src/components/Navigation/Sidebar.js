@@ -44,6 +44,12 @@ const Sidebar = () => {
     { name: 'Settings', icon: Cog6ToothIcon, path: '/settings' },
   ];
 
+  // Custom nav link handler to ensure navigation works
+  const handleNavClick = (path, e) => {
+    e.preventDefault();
+    navigate(path);
+  };
+
   return (
     <div className="h-screen w-64 bg-gray-800 text-white fixed left-0 top-0 overflow-y-auto">
       <div className="p-4">
@@ -55,15 +61,16 @@ const Sidebar = () => {
         <ul>
           {navItems.map((item) => (
             <li key={item.path} className="mb-2">
-              <Link
-                to={item.path}
+              <a
+                href={item.path}
+                onClick={(e) => handleNavClick(item.path, e)}
                 className={`flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200 ${
                   location.pathname === item.path ? 'bg-gray-700 text-white border-l-4 border-purple-500' : ''
                 }`}
               >
                 <item.icon className="h-5 w-5 mr-3" />
                 <span>{item.name}</span>
-              </Link>
+              </a>
             </li>
           ))}
         </ul>
