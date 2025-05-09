@@ -125,6 +125,48 @@ async def status():
         "timestamp": datetime.now().isoformat()
     }
 
+# Projects endpoints
+@app.get("/api/projects")
+async def get_projects():
+    projects = list(db.projects.find())
+    return [format_document(project) for project in projects]
+
+@app.get("/api/projects/{project_id}")
+async def get_project(project_id: str):
+    project = db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return format_document(project)
+
+@app.post("/api/projects", status_code=201)
+async def create_project(project: dict):
+    project["id"] = str(uuid.uuid4())
+    project["createdAt"] = datetime.now()
+    result = db.projects.insert_one(project)
+    return format_document(project)
+
+@app.put("/api/projects/{project_id}")
+async def update_project(project_id: str, project_update: dict):
+    project = db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    update_data = {k: v for k, v in project_update.items() if k != "id"}
+    update_data["updatedAt"] = datetime.now()
+    
+    db.projects.update_one({"id": project_id}, {"$set": update_data})
+    updated_project = db.projects.find_one({"id": project_id})
+    return format_document(updated_project)
+
+@app.delete("/api/projects/{project_id}")
+async def delete_project(project_id: str):
+    project = db.projects.find_one({"id": project_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    db.projects.delete_one({"id": project_id})
+    return {"message": "Project deleted successfully"}
+
 # Sprints endpoints
 @app.get("/api/sprints")
 async def get_sprints(project_id: Optional[int] = None):
