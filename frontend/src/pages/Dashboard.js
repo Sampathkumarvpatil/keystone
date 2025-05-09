@@ -39,27 +39,50 @@ const Dashboard = () => {
       pdf.text(`Priority Filter: ${filterPriorityDashboard === 'all' ? 'All Priorities' : filterPriorityDashboard}`, 40, 100);
       pdf.text(`Date Range: ${filterDateRange === 'all' ? 'All Time' : filterDateRange}`, 40, 120);
       
-      // Calculate height of content
-      const contentHeight = dashboardRef.current.scrollHeight;
+      // Get all dashboard sections
+      const sections = dashboardRef.current.querySelectorAll('.bg-white');
       
-      // Create scale factor based on width
-      const scale = 740 / dashboardRef.current.offsetWidth;
+      // Set initial y position
+      let yPosition = 140;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 40;
+      const contentWidth = pageWidth - (margin * 2);
       
-      // Set canvas dimensions
-      const canvas = await html2canvas(dashboardRef.current, {
-        height: contentHeight,
-        width: dashboardRef.current.offsetWidth,
-        scale: 2
-      });
-      
-      // Get image data
-      const imgData = canvas.toDataURL('image/png');
-      
-      // Calculate height to maintain aspect ratio
-      const imgHeight = (canvas.height * 740) / canvas.width;
-      
-      // Add image to PDF (scaled to fit page width)
-      pdf.addImage(imgData, 'PNG', 40, 140, 740, imgHeight);
+      // Process each section individually
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        
+        // Capture the section
+        const canvas = await html2canvas(section, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true
+        });
+        
+        // Calculate dimensions
+        const imgWidth = contentWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Check if we need to add a new page
+        if (yPosition + imgHeight > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        
+        // Add the section image to the PDF
+        pdf.addImage(
+          canvas.toDataURL('image/png'),
+          'PNG',
+          margin,
+          yPosition,
+          imgWidth,
+          imgHeight
+        );
+        
+        // Update y position for next section
+        yPosition += imgHeight + 20;
+      }
       
       // Save the PDF
       pdf.save(`Dashboard_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
