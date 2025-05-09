@@ -24,35 +24,184 @@ const Sprints = () => {
   const [filteredSprints, setFilteredSprints] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
 
+  // Chart ref for sprint performance chart
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
+
+  // Load data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const projectsData = await db.projects.toArray();
+        setProjects(projectsData);
+        
+        const sprintsData = await db.sprints.toArray();
+        setAllSprints(sprintsData);
+        setFilteredSprints(sprintsData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+    
+    loadData();
+  }, []);
+
+  // Filter sprints when project selection changes
+  useEffect(() => {
+    if (selectedProjectId === 'all') {
+      setFilteredSprints(allSprints);
+    } else {
+      const filtered = allSprints.filter(sprint => 
+        sprint.projectId === parseInt(selectedProjectId)
+      );
+      setFilteredSprints(filtered);
+    }
+  }, [selectedProjectId, allSprints]);
+
+  // Initialize chart when data changes
+  useEffect(() => {
+    if (chartRef.current && filteredSprints.length > 0) {
+      // Destroy previous chart instance if it exists
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+
+      // Wait for the DOM to update
+      setTimeout(() => {
+        const ctx = chartRef.current.getContext('2d');
+        
+        // Create chart data
+        const labels = filteredSprints.map(sprint => sprint.name);
+        const committedPointsData = filteredSprints.map(sprint => sprint.committedPoints);
+        const acceptedPointsData = filteredSprints.map(sprint => sprint.acceptedPoints);
+        const addedPointsData = filteredSprints.map(sprint => sprint.addedPoints);
+        const descopedPointsData = filteredSprints.map(sprint => sprint.descopedPoints);
+        
+        // Initialize the chart
+        chartInstance.current = new ChartJS(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Committed Points',
+                data: committedPointsData,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+              },
+              {
+                label: 'Accepted Points',
+                data: acceptedPointsData,
+                backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+              },
+              {
+                label: 'Added Points',
+                data: addedPointsData,
+                backgroundColor: 'rgba(255, 159, 64, 0.7)',
+                borderColor: 'rgba(255, 159, 64, 1)',
+                borderWidth: 1
+              },
+              {
+                label: 'Descoped Points',
+                data: descopedPointsData,
+                backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                borderColor: 'rgba(239, 68, 68, 1)',
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: 'Sprint Performance'
+              }
+            }
+          }
+        });
+      }, 100);
+    }
+    
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+    };
+  }, [filteredSprints]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'committedPoints' ? parseInt(value) : value,
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'committedPoints' || name === 'acceptedPoints' || 
+              name === 'addedPoints' || name === 'descopedPoints' 
+              ? parseInt(value) 
+              : value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const newSprint = {
-      ...formData,
-      projectId: parseInt(formData.projectId),
-      acceptedPoints: 0,
-      addedPoints: 0,
-      descopedPoints: 0
-    };
-    
-    await db.sprints.add(newSprint);
-    setFormData({
-      projectId: '',
-      name: '',
-      startDate: '',
-      endDate: '',
-      committedPoints: 0,
-      status: SPRINT_STATUS.PLANNING
-    });
-    setIsFormOpen(false);
+    try {
+      const sprintData = {
+        ...formData,
+        projectId: parseInt(formData.projectId),
+        status: formData.status
+      };
+
+      let id;
+      if (isEditing) {
+        // Update existing sprint
+        id = formData.id;
+        await db.sprints.update(id, {
+          ...sprintData,
+          updatedAt: new Date()
+        });
+        
+        // Update state
+        setAllSprints(prev => 
+          prev.map(sprint => sprint.id === id ? { ...sprintData, id, updatedAt: new Date() } : sprint)
+        );
+      } else {
+        // Add new sprint
+        id = await db.sprints.add({
+          ...sprintData,
+          createdAt: new Date()
+        });
+        
+        // Update state
+        setAllSprints(prev => [...prev, { ...sprintData, id, createdAt: new Date() }]);
+      }
+      
+      // Reset form and close it
+      setFormData({
+        projectId: '',
+        name: '',
+        startDate: '',
+        endDate: '',
+        committedPoints: 0,
+        acceptedPoints: 0,
+        addedPoints: 0,
+        descopedPoints: 0,
+        status: SPRINT_STATUS.PLANNING
+      });
+      setIsEditing(false);
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error('Error saving sprint:', error);
+      alert('Failed to save sprint. Please try again.');
+    }
   };
 
   // Get status color
