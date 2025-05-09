@@ -204,20 +204,6 @@ const Sprints = () => {
     }
   };
 
-  // Get status color
-  const getStatusColor = (status) => {
-    switch (status) {
-      case SPRINT_STATUS.PLANNING:
-        return 'bg-purple-100 text-purple-800';
-      case SPRINT_STATUS.ACTIVE:
-        return 'bg-blue-100 text-blue-800';
-      case SPRINT_STATUS.COMPLETED:
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   // Calculate sprint completion percentage
   const calculateCompletion = (sprint) => {
     if (sprint.committedPoints === 0) return 0;
@@ -231,49 +217,22 @@ const Sprints = () => {
     return project ? project.name : 'Unknown Project';
   };
 
-  // Prepare data for burndown chart
-  const sprintChartData = {
-    labels: sprints ? sprints.map(s => s.name) : [],
-    datasets: [
-      {
-        label: 'Committed Points',
-        data: sprints ? sprints.map(s => s.committedPoints) : [],
-        backgroundColor: 'rgba(96, 165, 250, 0.7)',
-      },
-      {
-        label: 'Accepted Points',
-        data: sprints ? sprints.map(s => s.acceptedPoints) : [],
-        backgroundColor: 'rgba(52, 211, 153, 0.7)',
-      },
-      {
-        label: 'Added Points',
-        data: sprints ? sprints.map(s => s.addedPoints) : [],
-        backgroundColor: 'rgba(245, 158, 11, 0.7)',
-      },
-      {
-        label: 'Descoped Points',
-        data: sprints ? sprints.map(s => s.descopedPoints) : [],
-        backgroundColor: 'rgba(239, 68, 68, 0.7)',
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: 'Sprint Points Comparison',
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-      },
-    },
+  // Handle edit sprint
+  const handleEditSprint = (sprint) => {
+    setFormData({
+      id: sprint.id,
+      projectId: sprint.projectId.toString(),
+      name: sprint.name,
+      startDate: new Date(sprint.startDate).toISOString().split('T')[0],
+      endDate: new Date(sprint.endDate).toISOString().split('T')[0],
+      committedPoints: sprint.committedPoints,
+      acceptedPoints: sprint.acceptedPoints,
+      addedPoints: sprint.addedPoints,
+      descopedPoints: sprint.descopedPoints,
+      status: sprint.status
+    });
+    setIsEditing(true);
+    setIsFormOpen(true);
   };
 
   return (
