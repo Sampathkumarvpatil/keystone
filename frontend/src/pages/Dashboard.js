@@ -205,6 +205,8 @@ const Dashboard = () => {
           filterStatus={filterStatusDashboard} 
           filterPriority={filterPriorityDashboard}
           filterDateRange={filterDateRange}
+          filterProjectId={filterProjectId}
+          filterSprintId={filterSprintId}
         />
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -212,11 +214,15 @@ const Dashboard = () => {
             filterStatus={filterStatusDashboard} 
             filterPriority={filterPriorityDashboard}
             filterDateRange={filterDateRange}
+            filterProjectId={filterProjectId}
+            filterSprintId={filterSprintId}
           />
           <SprintPerformance 
             filterStatus={filterStatusDashboard} 
             filterPriority={filterPriorityDashboard}
             filterDateRange={filterDateRange}
+            filterProjectId={filterProjectId}
+            filterSprintId={filterSprintId}
           />
         </div>
         
@@ -224,6 +230,8 @@ const Dashboard = () => {
           filterStatus={filterStatusDashboard} 
           filterPriority={filterPriorityDashboard}
           filterDateRange={filterDateRange}
+          filterProjectId={filterProjectId}
+          filterSprintId={filterSprintId}
         />
       </div>
     </div>
