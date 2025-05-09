@@ -12,12 +12,19 @@ const Dashboard = () => {
   const [filterStatusDashboard, setFilterStatusDashboard] = useState('all');
   const [filterPriorityDashboard, setFilterPriorityDashboard] = useState('all');
   const [filterDateRange, setFilterDateRange] = useState('all');
+  const [filterProjectId, setFilterProjectId] = useState('all');
+  const [filterSprintId, setFilterSprintId] = useState('all');
   
   // References for PDF export
   const dashboardRef = useRef(null);
   
-  // Get projects for filtering
+  // Get data for filtering
   const projects = useLiveQuery(() => db.projects.toArray());
+  const sprints = useLiveQuery(() => 
+    filterProjectId !== 'all' 
+      ? db.sprints.where('projectId').equals(parseInt(filterProjectId)).toArray() 
+      : db.sprints.toArray()
+  );
   
   // Export dashboard to PDF
   const handleExportPDF = async () => {
