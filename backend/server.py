@@ -134,7 +134,7 @@ async def get_sprints(project_id: Optional[int] = None):
     sprints = list(db.sprints.find(query))
     return [format_document(sprint) for sprint in sprints]
 
-@app.post("/api/sprints", status_code=status.HTTP_201_CREATED)
+@app.post("/api/sprints", status_code=201)
 async def create_sprint(sprint: dict):
     sprint["id"] = str(uuid.uuid4())
     sprint["createdAt"] = datetime.now()
