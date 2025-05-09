@@ -115,6 +115,16 @@ async def root():
 async def health_check():
     return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
+# Status check endpoint
+@app.get("/api/status")
+async def status():
+    return {
+        "status": "operational",
+        "version": "1.0.0",
+        "uptime": "N/A",
+        "timestamp": datetime.now().isoformat()
+    }
+
 # Sprints endpoints
 @app.get("/api/sprints")
 async def get_sprints(project_id: Optional[int] = None):
