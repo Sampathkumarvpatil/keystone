@@ -82,11 +82,17 @@ def main():
     tester = AgileTrackingAPITester()
     
     # Run tests
+    print("\n===== TESTING BACKEND API =====")
     root_success, _ = tester.test_root_endpoint()
     status_success = tester.test_status_endpoint()
     
     # Print results
     print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
+    
+    print("\n===== BACKEND API TEST SUMMARY =====")
+    print(f"Root endpoint: {'✅ PASSED' if root_success else '❌ FAILED'}")
+    print(f"Status endpoint: {'✅ PASSED' if status_success else '❌ FAILED'}")
+    
     return 0 if tester.tests_passed == tester.tests_run else 1
 
 if __name__ == "__main__":
