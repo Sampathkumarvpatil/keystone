@@ -7,7 +7,7 @@ import db, { PROJECT_STATUS, TASK_STATUS } from '../../db/db';
 // Register ChartJS components
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
 
-const ExecutiveOverview = ({ filterStatus, filterPriority, filterDateRange }) => {
+const ExecutiveOverview = ({ filterStatus, filterPriority, filterDateRange, filterProjectId, filterSprintId }) => {
   const allProjects = useLiveQuery(() => db.projects.toArray());
   const allSprints = useLiveQuery(() => db.sprints.toArray());
   const allTasks = useLiveQuery(() => db.tasks.toArray());
