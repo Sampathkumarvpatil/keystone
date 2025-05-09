@@ -7,7 +7,9 @@ import { Doughnut, Bar } from 'react-chartjs-2';
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
 const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filterProjectId, filterSprintId }) => {
+  // Use filtered projectId if provided, otherwise use local state
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [calculatedAcceptedPoints, setCalculatedAcceptedPoints] = useState({});
   
   const projects = useLiveQuery(() => db.projects.toArray());
   const sprints = useLiveQuery(() => 
