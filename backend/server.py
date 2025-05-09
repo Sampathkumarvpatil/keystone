@@ -206,7 +206,7 @@ async def get_tasks(project_id: Optional[int] = None, sprint_id: Optional[int] =
     tasks = list(db.tasks.find(query))
     return [format_document(task) for task in tasks]
 
-@app.post("/api/tasks", status_code=status.HTTP_201_CREATED)
+@app.post("/api/tasks", status_code=201)
 async def create_task(task: dict):
     task["id"] = str(uuid.uuid4())
     task["createdAt"] = datetime.now()
