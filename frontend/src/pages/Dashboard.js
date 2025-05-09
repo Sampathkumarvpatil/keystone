@@ -46,6 +46,12 @@ const Dashboard = () => {
       pdf.text(`Priority Filter: ${filterPriorityDashboard === 'all' ? 'All Priorities' : filterPriorityDashboard}`, 40, 100);
       pdf.text(`Date Range: ${filterDateRange === 'all' ? 'All Time' : filterDateRange}`, 40, 120);
       
+      const projectName = filterProjectId === 'all' ? 'All Projects' : projects?.find(p => p.id === parseInt(filterProjectId))?.name || 'Unknown';
+      pdf.text(`Project: ${projectName}`, 40, 140);
+      
+      const sprintName = filterSprintId === 'all' ? 'All Sprints' : sprints?.find(s => s.id === parseInt(filterSprintId))?.name || 'Unknown';
+      pdf.text(`Sprint: ${sprintName}`, 40, 160);
+      
       // Get all dashboard sections
       const sections = dashboardRef.current.querySelectorAll('.bg-white');
       
