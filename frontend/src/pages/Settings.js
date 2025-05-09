@@ -7,6 +7,9 @@ const Settings = () => {
   const [theme, setTheme] = useState('light');
   const [chartColors, setChartColors] = useState('default');
   const [dateFormat, setDateFormat] = useState('MM/DD/YYYY');
+  const [projectView, setProjectView] = useState('list');
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [animations, setAnimations] = useState(true);
   const [exportStatus, setExportStatus] = useState(null);
   const [importStatus, setImportStatus] = useState(null);
 
@@ -101,6 +104,12 @@ const Settings = () => {
     }
   };
 
+  // Handle save settings
+  const handleSaveSettings = () => {
+    // In a real app, these would be saved to a database or localStorage
+    alert('Settings saved successfully!');
+  };
+
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Settings</h1>
@@ -165,26 +174,48 @@ const Settings = () => {
                   <label className="block text-gray-700 mb-2">Default Project View</label>
                   <div className="flex space-x-4">
                     <label className="inline-flex items-center">
-                      <input type="radio" name="projectView" value="list" className="form-radio text-purple-600" checked />
+                      <input 
+                        type="radio" 
+                        name="projectView" 
+                        value="list" 
+                        className="form-radio text-purple-600" 
+                        checked={projectView === 'list'} 
+                        onChange={() => setProjectView('list')}
+                      />
                       <span className="ml-2">List</span>
                     </label>
                     <label className="inline-flex items-center">
-                      <input type="radio" name="projectView" value="card" className="form-radio text-purple-600" />
+                      <input 
+                        type="radio" 
+                        name="projectView" 
+                        value="card" 
+                        className="form-radio text-purple-600" 
+                        checked={projectView === 'card'} 
+                        onChange={() => setProjectView('card')}
+                      />
                       <span className="ml-2">Card</span>
                     </label>
                     <label className="inline-flex items-center">
-                      <input type="radio" name="projectView" value="kanban" className="form-radio text-purple-600" />
+                      <input 
+                        type="radio" 
+                        name="projectView" 
+                        value="kanban" 
+                        className="form-radio text-purple-600" 
+                        checked={projectView === 'kanban'} 
+                        onChange={() => setProjectView('kanban')}
+                      />
                       <span className="ml-2">Kanban</span>
                     </label>
                   </div>
                 </div>
                 
                 <div className="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    id="autoRefresh" 
-                    className="form-checkbox text-purple-600 h-5 w-5" 
-                    checked 
+                  <input  
+                    type="checkbox"  
+                    id="autoRefresh"  
+                    className="form-checkbox text-purple-600 h-5 w-5"  
+                    checked={autoRefresh}
+                    onChange={() => setAutoRefresh(!autoRefresh)}
                   />
                   <label htmlFor="autoRefresh" className="ml-2 text-gray-700">
                     Auto-refresh dashboard (every 5 minutes)
@@ -192,7 +223,10 @@ const Settings = () => {
                 </div>
                 
                 <div>
-                  <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">
+                  <button 
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
+                    onClick={handleSaveSettings}
+                  >
                     Save Settings
                   </button>
                 </div>
@@ -210,35 +244,35 @@ const Settings = () => {
                   <label className="block text-gray-700 mb-2">Theme</label>
                   <div className="flex space-x-4">
                     <label className="inline-flex items-center">
-                      <input 
-                        type="radio" 
-                        name="theme" 
-                        value="light" 
-                        className="form-radio text-purple-600"
-                        checked={theme === 'light'}
-                        onChange={() => setTheme('light')}
+                      <input  
+                        type="radio"  
+                        name="theme"  
+                        value="light"  
+                        className="form-radio text-purple-600" 
+                        checked={theme === 'light'} 
+                        onChange={() => setTheme('light')} 
                       />
                       <span className="ml-2">Light</span>
                     </label>
                     <label className="inline-flex items-center">
-                      <input 
-                        type="radio" 
-                        name="theme" 
-                        value="dark" 
-                        className="form-radio text-purple-600"
-                        checked={theme === 'dark'}
-                        onChange={() => setTheme('dark')}
+                      <input  
+                        type="radio"  
+                        name="theme"  
+                        value="dark"  
+                        className="form-radio text-purple-600" 
+                        checked={theme === 'dark'} 
+                        onChange={() => setTheme('dark')} 
                       />
                       <span className="ml-2">Dark</span>
                     </label>
                     <label className="inline-flex items-center">
-                      <input 
-                        type="radio" 
-                        name="theme" 
-                        value="system" 
-                        className="form-radio text-purple-600"
-                        checked={theme === 'system'}
-                        onChange={() => setTheme('system')}
+                      <input  
+                        type="radio"  
+                        name="theme"  
+                        value="system"  
+                        className="form-radio text-purple-600" 
+                        checked={theme === 'system'} 
+                        onChange={() => setTheme('system')} 
                       />
                       <span className="ml-2">System Default</span>
                     </label>
@@ -260,11 +294,12 @@ const Settings = () => {
                 </div>
                 
                 <div className="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    id="animations" 
-                    className="form-checkbox text-purple-600 h-5 w-5" 
-                    checked 
+                  <input  
+                    type="checkbox"  
+                    id="animations"  
+                    className="form-checkbox text-purple-600 h-5 w-5"  
+                    checked={animations}
+                    onChange={() => setAnimations(!animations)}
                   />
                   <label htmlFor="animations" className="ml-2 text-gray-700">
                     Enable animations
@@ -272,7 +307,10 @@ const Settings = () => {
                 </div>
                 
                 <div>
-                  <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded">
+                  <button 
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
+                    onClick={handleSaveSettings}
+                  >
                     Save Appearance
                   </button>
                 </div>
