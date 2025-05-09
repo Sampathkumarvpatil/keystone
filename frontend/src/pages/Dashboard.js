@@ -9,6 +9,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import db, { PROJECT_STATUS, PROJECT_PRIORITY } from '../db/db';
 
 const Dashboard = () => {
+  // Initial state with default values
   const [filterStatusDashboard, setFilterStatusDashboard] = useState('all');
   const [filterPriorityDashboard, setFilterPriorityDashboard] = useState('all');
   const [filterDateRange, setFilterDateRange] = useState('all');
@@ -25,6 +26,19 @@ const Dashboard = () => {
       ? db.sprints.where('projectId').equals(parseInt(filterProjectId)).toArray() 
       : db.sprints.toArray()
   );
+  
+  // Handle project selection change
+  const handleProjectChange = (e) => {
+    const newValue = e.target.value;
+    setFilterProjectId(newValue);
+    // Reset sprint filter if project changes
+    setFilterSprintId('all');
+  };
+  
+  // Handle sprint selection change
+  const handleSprintChange = (e) => {
+    setFilterSprintId(e.target.value);
+  };
   
   // Export dashboard to PDF
   const handleExportPDF = async () => {
@@ -46,14 +60,11 @@ const Dashboard = () => {
       pdf.text(`Priority Filter: ${filterPriorityDashboard === 'all' ? 'All Priorities' : filterPriorityDashboard}`, 40, 100);
       pdf.text(`Date Range: ${filterDateRange === 'all' ? 'All Time' : filterDateRange}`, 40, 120);
       
-      const projectName = filterProjectId === 'all' ? 'All Projects' : projects?.find(p => p.id === parseInt(filterProjectId))?.name || 'Unknown';
+      const projectName = filterProjectId === 'all' ? 'All Projects' : projects?.find(p => p.id.toString() === filterProjectId)?.name || 'Unknown';
       pdf.text(`Project: ${projectName}`, 40, 140);
       
-      const sprintName = filterSprintId === 'all' ? 'All Sprints' : sprints?.find(s => s.id === parseInt(filterSprintId))?.name || 'Unknown';
+      const sprintName = filterSprintId === 'all' ? 'All Sprints' : sprints?.find(s => s.id.toString() === filterSprintId)?.name || 'Unknown';
       pdf.text(`Sprint: ${sprintName}`, 40, 160);
-      
-      // Get all dashboard sections
-      const sections = dashboardRef.current.querySelectorAll('.bg-white');
       
       // Set initial y position
       let yPosition = 180;
@@ -63,19 +74,34 @@ const Dashboard = () => {
       const contentWidth = pageWidth - (margin * 2);
       
       // Process each section individually
+      const sections = dashboardRef.current.querySelectorAll('.bg-white');
+      
+      // Create an array to store each section image
+      const sectionImages = [];
+      
+      // Capture each section individually
       for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
-        
-        // Capture the section
-        const canvas = await html2canvas(section, {
+        const canvas = await html2canvas(section, { 
           scale: 2,
           useCORS: true,
-          allowTaint: true
+          allowTaint: true,
+          logging: false,
+          width: section.offsetWidth,
+          height: section.offsetHeight
         });
-        
-        // Calculate dimensions
+        sectionImages.push({
+          dataUrl: canvas.toDataURL('image/png'),
+          width: canvas.width,
+          height: canvas.height
+        });
+      }
+      
+      // Add sections to PDF
+      for (let i = 0; i < sectionImages.length; i++) {
+        const img = sectionImages[i];
         const imgWidth = contentWidth;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        const imgHeight = (img.height * imgWidth) / img.width;
         
         // Check if we need to add a new page
         if (yPosition + imgHeight > pageHeight - margin) {
@@ -83,17 +109,10 @@ const Dashboard = () => {
           yPosition = margin;
         }
         
-        // Add the section image to the PDF
-        pdf.addImage(
-          canvas.toDataURL('image/png'),
-          'PNG',
-          margin,
-          yPosition,
-          imgWidth,
-          imgHeight
-        );
+        // Add image
+        pdf.addImage(img.dataUrl, 'PNG', margin, yPosition, imgWidth, imgHeight);
         
-        // Update y position for next section
+        // Update position for next section
         yPosition += imgHeight + 20;
       }
       
@@ -167,10 +186,7 @@ const Dashboard = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
             <select
               value={filterProjectId}
-              onChange={(e) => {
-                setFilterProjectId(e.target.value);
-                setFilterSprintId('all'); // Reset sprint filter when project changes
-              }}
+              onChange={handleProjectChange}
               className="w-full border border-gray-300 rounded-md p-2"
             >
               <option value="all">All Projects</option>
@@ -185,7 +201,7 @@ const Dashboard = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Sprint</label>
             <select
               value={filterSprintId}
-              onChange={(e) => setFilterSprintId(e.target.value)}
+              onChange={handleSprintChange}
               className="w-full border border-gray-300 rounded-md p-2"
               disabled={filterProjectId === 'all'}
             >
