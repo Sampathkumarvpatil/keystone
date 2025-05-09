@@ -395,7 +395,7 @@ async def get_time_entries(project_id: Optional[int] = None, sprint_id: Optional
     
     return [format_document(entry) for entry in time_entries]
 
-@app.post("/api/time-entries", status_code=status.HTTP_201_CREATED)
+@app.post("/api/time-entries", status_code=201)
 async def create_time_entry(entry: dict):
     entry["id"] = str(uuid.uuid4())
     entry["createdAt"] = datetime.now()
