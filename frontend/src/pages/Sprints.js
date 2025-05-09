@@ -51,9 +51,8 @@ const Sprints = () => {
     if (selectedProjectId === 'all') {
       setFilteredSprints(allSprints);
     } else {
-      const filtered = allSprints.filter(sprint => 
-        sprint.projectId === parseInt(selectedProjectId)
-      );
+      const projectIdNum = parseInt(selectedProjectId);
+      const filtered = allSprints.filter(sprint => sprint.projectId === projectIdNum);
       setFilteredSprints(filtered);
     }
   }, [selectedProjectId, allSprints]);
