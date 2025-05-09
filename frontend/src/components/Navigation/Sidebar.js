@@ -36,12 +36,12 @@ const Sidebar = () => {
   
   const navItems = [
     { name: 'Dashboard', icon: HomeIcon, path: '/' },
-    { name: 'Projects', icon: ChartBarIcon, path: '/projects' },
-    { name: 'Sprints', icon: ClipboardDocumentListIcon, path: '/sprints' },
-    { name: 'Team', icon: UserGroupIcon, path: '/team' },
-    { name: 'Tasks & Bugs', icon: TagIcon, path: '/tasks' },
-    { name: 'Time Tracking', icon: ClockIcon, path: '/time' },
-    { name: 'Settings', icon: Cog6ToothIcon, path: '/settings' },
+    { name: 'Projects', icon: ChartBarIcon, path: 'projects' },
+    { name: 'Sprints', icon: ClipboardDocumentListIcon, path: 'sprints' },
+    { name: 'Team', icon: UserGroupIcon, path: 'team' },
+    { name: 'Tasks & Bugs', icon: TagIcon, path: 'tasks' },
+    { name: 'Time Tracking', icon: ClockIcon, path: 'time' },
+    { name: 'Settings', icon: Cog6ToothIcon, path: 'settings' },
   ];
 
   return (
