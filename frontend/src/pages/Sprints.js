@@ -66,70 +66,75 @@ const Sprints = () => {
         chartInstance.current.destroy();
       }
 
-      // Wait for the DOM to update
-      setTimeout(() => {
-        const ctx = chartRef.current.getContext('2d');
-        
-        // Create chart data
-        const labels = filteredSprints.map(sprint => sprint.name);
-        const committedPointsData = filteredSprints.map(sprint => sprint.committedPoints);
-        const acceptedPointsData = filteredSprints.map(sprint => sprint.acceptedPoints);
-        const addedPointsData = filteredSprints.map(sprint => sprint.addedPoints);
-        const descopedPointsData = filteredSprints.map(sprint => sprint.descopedPoints);
-        
-        // Initialize the chart
-        chartInstance.current = new ChartJS(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: 'Committed Points',
-                data: committedPointsData,
-                backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-              },
-              {
-                label: 'Accepted Points',
-                data: acceptedPointsData,
-                backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-              },
-              {
-                label: 'Added Points',
-                data: addedPointsData,
-                backgroundColor: 'rgba(255, 159, 64, 0.7)',
-                borderColor: 'rgba(255, 159, 64, 1)',
-                borderWidth: 1
-              },
-              {
-                label: 'Descoped Points',
-                data: descopedPointsData,
-                backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                borderColor: 'rgba(239, 68, 68, 1)',
-                borderWidth: 1
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: {
-                beginAtZero: true
-              }
+      // Define chart container dimensions 
+      const container = chartRef.current.parentNode;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+
+      // Set the chart canvas to match container size properly
+      chartRef.current.width = containerWidth;
+      chartRef.current.height = containerHeight;
+
+      // Create chart data
+      const labels = filteredSprints.map(sprint => sprint.name);
+      const committedPointsData = filteredSprints.map(sprint => sprint.committedPoints);
+      const acceptedPointsData = filteredSprints.map(sprint => sprint.acceptedPoints);
+      const addedPointsData = filteredSprints.map(sprint => sprint.addedPoints);
+      const descopedPointsData = filteredSprints.map(sprint => sprint.descopedPoints);
+      
+      // Initialize the chart
+      const ctx = chartRef.current.getContext('2d');
+      chartInstance.current = new ChartJS(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Committed Points',
+              data: committedPointsData,
+              backgroundColor: 'rgba(54, 162, 235, 0.7)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1
             },
-            plugins: {
-              title: {
-                display: true,
-                text: 'Sprint Performance'
-              }
+            {
+              label: 'Accepted Points',
+              data: acceptedPointsData,
+              backgroundColor: 'rgba(75, 192, 192, 0.7)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1
+            },
+            {
+              label: 'Added Points',
+              data: addedPointsData,
+              backgroundColor: 'rgba(255, 159, 64, 0.7)',
+              borderColor: 'rgba(255, 159, 64, 1)',
+              borderWidth: 1
+            },
+            {
+              label: 'Descoped Points',
+              data: descopedPointsData,
+              backgroundColor: 'rgba(239, 68, 68, 0.7)',
+              borderColor: 'rgba(239, 68, 68, 1)',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: 'Sprint Performance'
             }
           }
-        });
-      }, 100);
+        }
+      });
     }
     
     return () => {
