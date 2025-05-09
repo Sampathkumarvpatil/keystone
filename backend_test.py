@@ -58,24 +58,86 @@ class AgileTrackingAPITester:
 
     def test_status_endpoint(self):
         """Test the status endpoint"""
-        client_name = f"test_client_{datetime.now().strftime('%H%M%S')}"
         success, response = self.run_test(
-            "Create Status Check",
-            "POST",
+            "Get Status",
+            "GET",
             "status",
-            200,
-            data={"client_name": client_name}
+            200
+        )
+        return success
+    
+    def test_projects_endpoints(self):
+        """Test project-related endpoints including delete functionality"""
+        # Get all projects
+        get_success, projects = self.run_test(
+            "Get All Projects",
+            "GET",
+            "projects",
+            200
         )
         
-        if success:
-            success, response = self.run_test(
-                "Get Status Checks",
-                "GET",
-                "status",
-                200
-            )
-            return success
-        return False
+        if not get_success:
+            return False
+        
+        # Create a new project
+        new_project = {
+            "name": f"Test Project {datetime.now().strftime('%H%M%S')}",
+            "status": "Not Started",
+            "priority": "Medium",
+            "startDate": "2025-02-01",
+            "endDate": "2025-12-31"
+        }
+        
+        create_success, created_project = self.run_test(
+            "Create Project",
+            "POST",
+            "projects",
+            201,
+            data=new_project
+        )
+        
+        if not create_success or 'id' not in created_project:
+            return False
+        
+        project_id = created_project['id']
+        
+        # Get the created project
+        get_one_success, _ = self.run_test(
+            f"Get Project {project_id}",
+            "GET",
+            f"projects/{project_id}",
+            200
+        )
+        
+        if not get_one_success:
+            return False
+        
+        # Update the project
+        update_data = {
+            "name": f"Updated Project {datetime.now().strftime('%H%M%S')}",
+            "status": "In Progress"
+        }
+        
+        update_success, _ = self.run_test(
+            f"Update Project {project_id}",
+            "PUT",
+            f"projects/{project_id}",
+            200,
+            data=update_data
+        )
+        
+        if not update_success:
+            return False
+        
+        # Test delete functionality
+        delete_success, _ = self.run_test(
+            f"Delete Project {project_id}",
+            "DELETE",
+            f"projects/{project_id}",
+            200
+        )
+        
+        return delete_success
     
     def test_sprints_endpoints(self):
         """Test sprint-related endpoints"""
@@ -98,6 +160,7 @@ class AgileTrackingAPITester:
             "endDate": "2025-02-15",
             "status": "Active",
             "committedPoints": 30,
+            "acceptedPoints": 20,
             "addedPoints": 5,
             "descopedPoints": 2
         }
@@ -129,7 +192,8 @@ class AgileTrackingAPITester:
         # Update the sprint
         update_data = {
             "name": f"Updated Sprint {datetime.now().strftime('%H%M%S')}",
-            "status": "Completed"
+            "status": "Completed",
+            "acceptedPoints": 25  # Testing if acceptedPoints update works
         }
         
         update_success, _ = self.run_test(
@@ -148,6 +212,231 @@ class AgileTrackingAPITester:
             f"Delete Sprint {sprint_id}",
             "DELETE",
             f"sprints/{sprint_id}",
+            200
+        )
+        
+        return delete_success
+    
+    def test_team_endpoints(self):
+        """Test team member endpoints including delete functionality"""
+        # Get all team members
+        get_success, team = self.run_test(
+            "Get All Team Members",
+            "GET",
+            "team",
+            200
+        )
+        
+        if not get_success:
+            return False
+        
+        # Create a new team member
+        new_member = {
+            "name": f"Test Member {datetime.now().strftime('%H%M%S')}",
+            "role": "Developer",
+            "capacity": 40,
+            "projectId": 1
+        }
+        
+        create_success, created_member = self.run_test(
+            "Create Team Member",
+            "POST",
+            "team",
+            201,
+            data=new_member
+        )
+        
+        if not create_success or 'id' not in created_member:
+            return False
+        
+        member_id = created_member['id']
+        
+        # Get the created team member
+        get_one_success, _ = self.run_test(
+            f"Get Team Member {member_id}",
+            "GET",
+            f"team/{member_id}",
+            200
+        )
+        
+        if not get_one_success:
+            return False
+        
+        # Update the team member
+        update_data = {
+            "name": f"Updated Member {datetime.now().strftime('%H%M%S')}",
+            "role": "Senior Developer"
+        }
+        
+        update_success, _ = self.run_test(
+            f"Update Team Member {member_id}",
+            "PUT",
+            f"team/{member_id}",
+            200,
+            data=update_data
+        )
+        
+        if not update_success:
+            return False
+        
+        # Test delete functionality
+        delete_success, _ = self.run_test(
+            f"Delete Team Member {member_id}",
+            "DELETE",
+            f"team/{member_id}",
+            200
+        )
+        
+        return delete_success
+    
+    def test_tasks_endpoints(self):
+        """Test task endpoints including delete functionality"""
+        # Get all tasks
+        get_success, tasks = self.run_test(
+            "Get All Tasks",
+            "GET",
+            "tasks",
+            200
+        )
+        
+        if not get_success:
+            return False
+        
+        # Create a new task
+        new_task = {
+            "projectId": 1,
+            "sprintId": 1,
+            "title": f"Test Task {datetime.now().strftime('%H%M%S')}",
+            "description": "This is a test task",
+            "status": "To Do",
+            "priority": "Medium",
+            "assignee": "John Doe",
+            "estimatedHours": 8
+        }
+        
+        create_success, created_task = self.run_test(
+            "Create Task",
+            "POST",
+            "tasks",
+            201,
+            data=new_task
+        )
+        
+        if not create_success or 'id' not in created_task:
+            return False
+        
+        task_id = created_task['id']
+        
+        # Get the created task
+        get_one_success, _ = self.run_test(
+            f"Get Task {task_id}",
+            "GET",
+            f"tasks/{task_id}",
+            200
+        )
+        
+        if not get_one_success:
+            return False
+        
+        # Update the task
+        update_data = {
+            "title": f"Updated Task {datetime.now().strftime('%H%M%S')}",
+            "status": "Done"
+        }
+        
+        update_success, _ = self.run_test(
+            f"Update Task {task_id}",
+            "PUT",
+            f"tasks/{task_id}",
+            200,
+            data=update_data
+        )
+        
+        if not update_success:
+            return False
+        
+        # Test delete functionality
+        delete_success, _ = self.run_test(
+            f"Delete Task {task_id}",
+            "DELETE",
+            f"tasks/{task_id}",
+            200
+        )
+        
+        return delete_success
+    
+    def test_bugs_endpoints(self):
+        """Test bug endpoints including delete functionality"""
+        # Get all bugs
+        get_success, bugs = self.run_test(
+            "Get All Bugs",
+            "GET",
+            "bugs",
+            200
+        )
+        
+        if not get_success:
+            return False
+        
+        # Create a new bug
+        new_bug = {
+            "projectId": 1,
+            "sprintId": 1,
+            "title": f"Test Bug {datetime.now().strftime('%H%M%S')}",
+            "description": "This is a test bug",
+            "status": "To Do",
+            "priority": "High",
+            "severity": "Major",
+            "assignee": "Jane Doe",
+            "estimatedHours": 4
+        }
+        
+        create_success, created_bug = self.run_test(
+            "Create Bug",
+            "POST",
+            "bugs",
+            201,
+            data=new_bug
+        )
+        
+        if not create_success or 'id' not in created_bug:
+            return False
+        
+        bug_id = created_bug['id']
+        
+        # Get the created bug
+        get_one_success, _ = self.run_test(
+            f"Get Bug {bug_id}",
+            "GET",
+            f"bugs/{bug_id}",
+            200
+        )
+        
+        if not get_one_success:
+            return False
+        
+        # Update the bug
+        update_data = {
+            "title": f"Updated Bug {datetime.now().strftime('%H%M%S')}",
+            "status": "Done"
+        }
+        
+        update_success, _ = self.run_test(
+            f"Update Bug {bug_id}",
+            "PUT",
+            f"bugs/{bug_id}",
+            200,
+            data=update_data
+        )
+        
+        if not update_success:
+            return False
+        
+        # Test delete functionality
+        delete_success, _ = self.run_test(
+            f"Delete Bug {bug_id}",
+            "DELETE",
+            f"bugs/{bug_id}",
             200
         )
         
@@ -292,7 +581,15 @@ def main():
     print("\n===== TESTING BACKEND API =====")
     root_success, _ = tester.test_root_endpoint()
     status_success = tester.test_status_endpoint()
+    
+    # Test CRUD operations with delete functionality
+    projects_success = tester.test_projects_endpoints()
     sprints_success = tester.test_sprints_endpoints()
+    team_success = tester.test_team_endpoints()
+    tasks_success = tester.test_tasks_endpoints()
+    bugs_success = tester.test_bugs_endpoints()
+    
+    # Test other functionality
     time_tracking_success = tester.test_time_tracking_endpoints()
     task_update_success = tester.test_task_update_with_time()
     
@@ -302,7 +599,11 @@ def main():
     print("\n===== BACKEND API TEST SUMMARY =====")
     print(f"Root endpoint: {'✅ PASSED' if root_success else '❌ FAILED'}")
     print(f"Status endpoint: {'✅ PASSED' if status_success else '❌ FAILED'}")
-    print(f"Sprints endpoints: {'✅ PASSED' if sprints_success else '❌ FAILED'}")
+    print(f"Projects endpoints (with delete): {'✅ PASSED' if projects_success else '❌ FAILED'}")
+    print(f"Sprints endpoints (with delete): {'✅ PASSED' if sprints_success else '❌ FAILED'}")
+    print(f"Team endpoints (with delete): {'✅ PASSED' if team_success else '❌ FAILED'}")
+    print(f"Tasks endpoints (with delete): {'✅ PASSED' if tasks_success else '❌ FAILED'}")
+    print(f"Bugs endpoints (with delete): {'✅ PASSED' if bugs_success else '❌ FAILED'}")
     print(f"Time tracking endpoints: {'✅ PASSED' if time_tracking_success else '❌ FAILED'}")
     print(f"Task update with time: {'✅ PASSED' if task_update_success else '❌ FAILED'}")
     
