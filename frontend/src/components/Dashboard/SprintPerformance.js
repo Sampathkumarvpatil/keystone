@@ -26,10 +26,10 @@ const SprintPerformance = ({ filterStatus, filterPriority, filterDateRange, filt
   useEffect(() => {
     if (filterProjectId && filterProjectId !== 'all') {
       setSelectedProjectId(parseInt(filterProjectId));
-    } else if (projects && projects.length > 0 && !selectedProjectId) {
+    } else if (projects && projects.length > 0 && selectedProjectId === null) {
       setSelectedProjectId(projects[0].id);
     }
-  }, [projects, selectedProjectId, filterProjectId]);
+  }, [projects, filterProjectId, selectedProjectId]);
   
   // Calculate accepted points from completed tasks and bugs
   useEffect(() => {
